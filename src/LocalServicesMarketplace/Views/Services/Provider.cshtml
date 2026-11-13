@@ -1,0 +1,186 @@
+@model ProviderDetailsViewModel
+@{
+    var p = Model.Provider;
+    var totalRatings = Math.Max(1, Model.RatingBreakdown.Sum());
+    var isCustomer = User.IsInRole(AppRoles.Customer);
+    var signedIn = User.Identity?.IsAuthenticated == true;
+}
+
+<section class="page-hero pb-4">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
+                <li class="breadcrumb-item"><a href="/Services?category=@p.Category.Slug">@p.Category.Name</a></li>
+                <li class="breadcrumb-item active" aria-current="page">@p.User.FullName</li>
+            </ol>
+        </nav>
+
+        @if (Model.IsPreview)
+        {
+            <div class="alert alert-warning d-flex gap-2 align-items-start">
+                <i class="bi bi-eye" aria-hidden="true"></i>
+                <div><strong>Preview.</strong> This profile is not public yet (verification: @p.VerificationStatus.Label()@(p.User.IsBlocked ? ", account blocked" : "")). Customers can't see or book it.</div>
+            </div>
+        }
+
+        <div class="profile-head">
+            <avatar name="@p.User.FullName" src="@p.User.ProfileImagePath" size="xl" />
+            <div class="min-w-0">
+                <h1>@p.User.FullName</h1>
+                <p class="lead mb-2 mt-1">@(p.Headline ?? p.Category.Name)</p>
+                <div class="d-flex flex-wrap gap-3 align-items-center">
+                    @if (p.IsApproved) { <span class="verified"><i class="bi bi-patch-check-fill" aria-hidden="true"></i>ID verified by Kaarigar</span> }
+                    else { <span class="badge-status @p.VerificationStatus.BadgeClass()">@p.VerificationStatus.Label()</span> }
+                    <span class="chip"><i class="bi bi-tools" aria-hidden="true"></i>@p.Category.Name</span>
+                    <span class="chip"><i class="bi bi-geo-alt" aria-hidden="true"></i>@p.City</span>
+                    @if (p.IsSampleData) { <span class="demo-badge">Demo profile</span> }
+                </div>
+            </div>
+        </div>
+        <div class="stat-inline mt-4">
+            <div><strong>@(p.TotalReviews > 0 ? p.AverageRating.ToString("0.0") : "New")</strong><span>@p.TotalReviews review@(p.TotalReviews == 1 ? "" : "s")</span></div>
+            <div><strong>@Model.CompletedJobs</strong><span>jobs completed</span></div>
+            <div><strong>@p.ExperienceYears yrs</strong><span>experience</span></div>
+            <div><strong>@(Model.Services.Count > 0 ? Model.Services.Min(s => s.Price).ToMoney() : "-")</strong><span>starting price</span></div>
+        </div>
+    </div>
+</section>
+
+<section class="pb-5">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-lg-7 d-grid gap-4 align-content-start">
+                @if (!string.IsNullOrWhiteSpace(p.Bio) || p.SkillList.Any())
+                {
+                    <div class="surface surface-pad">
+                        <h2 class="h4">About</h2>
+                        @if (!string.IsNullOrWhiteSpace(p.Bio)) { <p>@p.Bio</p> }
+                        @if (p.SkillList.Any())
+                        {
+                            <h3 class="h6 mt-3">Skills</h3>
+                            <div class="d-flex flex-wrap gap-2">@foreach (var s in p.SkillList) { <span class="chip">@s</span> }</div>
+                        }
+                        @if (p.ServiceAreaList.Any())
+                        {
+                            <h3 class="h6 mt-3">Areas served in @p.City</h3>
+                            <p class="text-muted mb-0">@string.Join(", ", p.ServiceAreaList)</p>
+                        }
+                    </div>
+                }
+
+                <div class="surface surface-pad">
+                    <h2 class="h4 mb-1">Services and prices</h2>
+                    <p class="text-muted small">Prices are set by the professional. Materials are extra where mentioned.</p>
+                    @if (Model.Services.Count == 0)
+                    {
+                        <p class="text-muted mb-0">No services listed yet.</p>
+                    }
+                    @foreach (var s in Model.Services)
+                    {
+                        <div class="service-row">
+                            <div>
+                                <h3>@s.Title</h3>
+                                <p class="small text-muted mb-1">@s.Description</p>
+                                <span class="small text-muted"><i class="bi bi-clock" aria-hidden="true"></i> About @s.DurationMinutes min</span>
+                            </div>
+                            <div class="price">
+                                <strong>@s.Price.ToMoney()</strong><span>@s.PriceUnit.Label()</span>
+                                @if (Model.ViewerCanBook && (isCustomer || !signedIn))
+                                {
+                                    <a class="btn btn-outline-ink btn-sm mt-2" asp-controller="Booking" asp-action="Create" asp-route-providerId="@p.Id" asp-route-serviceId="@s.Id">Book</a>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <div class="surface surface-pad" id="reviews">
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <h2 class="h4">Reviews</h2>
+                            <div class="display-6 fw-bold" style="font-family:var(--font-display)">@(p.TotalReviews > 0 ? p.AverageRating.ToString("0.0") : "–")</div>
+                            <stars value="@p.AverageRating" />
+                            <div class="small text-muted mt-1">@p.TotalReviews verified review@(p.TotalReviews == 1 ? "" : "s")</div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="rating-bars">
+                                @for (var star = 5; star >= 1; star--)
+                                {
+                                    var count = Model.RatingBreakdown[star - 1];
+                                    <div class="row-bar"><span>@star ★</span><span class="track"><span class="fill d-block" style="width:@(count * 100 / totalRatings)%"></span></span><span class="text-end">@count</span></div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        @if (Model.Reviews.Count == 0)
+                        {
+                            <p class="text-muted mb-0">No reviews yet. Reviews appear after completed bookings.</p>
+                        }
+                        @foreach (var r in Model.Reviews)
+                        {
+                            <article class="review">
+                                <div class="d-flex justify-content-between gap-2 flex-wrap">
+                                    <div class="d-flex gap-2 align-items-center">
+                                        <avatar name="@r.CustomerName" size="sm" />
+                                        <div><strong class="d-block small">@r.CustomerName</strong><span class="small text-muted">@r.ServiceTitle</span></div>
+                                    </div>
+                                    <div class="text-end"><stars value="@r.Rating" /><div class="small text-muted">@Tz.Format(r.CreatedAtUtc, "d MMM yyyy")</div></div>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(r.Comment)) { <p class="mt-2 mb-0">@r.Comment</p> }
+                            </article>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="surface surface-pad" style="position:sticky;top:88px">
+                    <h2 class="h4 mb-1">Available times</h2>
+                    <p class="small text-muted">Next 14 days, shown in IST. Pick a time to start booking.</p>
+                    @if (Model.IsPreview)
+                    {
+                        <p class="text-muted mb-0">Slots become bookable once the profile is approved.</p>
+                    }
+                    else if (!p.IsAcceptingBookings)
+                    {
+                        <div class="alert alert-info mb-0">@p.User.FullName is not taking new bookings at the moment.</div>
+                    }
+                    else if (Model.SlotDays.Count == 0)
+                    {
+                        <div class="empty p-3"><i class="bi bi-calendar-x" aria-hidden="true"></i><h3>Fully booked</h3><p>No free slots in the next two weeks.</p></div>
+                    }
+                    else
+                    {
+                        <div class="d-grid gap-3">
+                            @foreach (var day in Model.SlotDays.Take(5))
+                            {
+                                <div>
+                                    <div class="small-label mb-2">@(day.Date == Tz.LocalToday ? "Today" : day.Date == Tz.LocalToday.AddDays(1) ? "Tomorrow" : day.Date.ToString("dddd")), @day.Date.ToString("d MMM")</div>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        @foreach (var slot in day.Slots.Take(8))
+                                        {
+                                            <a class="slot-chip-link" asp-controller="Booking" asp-action="Create" asp-route-providerId="@p.Id" asp-route-slotId="@slot.Id">@Tz.FormatTime(slot.StartUtc)</a>
+                                        }
+                                        @if (day.Slots.Count > 8) { <span class="small text-muted align-self-center">+@(day.Slots.Count - 8) more</span> }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        <div class="divider my-3"></div>
+                        @if (Model.ViewerCanBook && (isCustomer || !signedIn))
+                        {
+                            <a class="btn btn-primary btn-lg w-100" asp-controller="Booking" asp-action="Create" asp-route-providerId="@p.Id">Book now</a>
+                            @if (!signedIn) { <p class="small text-muted text-center mt-2 mb-0">You'll be asked to sign in or register first.</p> }
+                        }
+                        else if (signedIn && !isCustomer)
+                        {
+                            <p class="small text-muted mb-0">Sign in with a customer account to book.</p>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

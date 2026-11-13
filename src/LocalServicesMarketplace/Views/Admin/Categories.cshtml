@@ -1,0 +1,53 @@
+@model CategoryInputModel
+@{ var categories = (IReadOnlyList<CategoryAdminVm>)ViewBag.Categories; var editing = Model.Id is > 0; }
+<div class="row g-4">
+    <div class="col-xl-8">
+        <div class="surface">
+            <div class="table-responsive">
+                <table class="table table-clean">
+                    <thead><tr><th>Order</th><th>Category</th><th class="text-end">Providers</th><th class="text-end">Services</th><th class="text-end">Bookings</th><th>Status</th><th class="text-end"><span class="visually-hidden">Actions</span></th></tr></thead>
+                    <tbody>
+                        @foreach (var row in categories)
+                        {
+                            var c = row.Category;
+                            <tr>
+                                <td class="tabular">@c.DisplayOrder</td>
+                                <td><div class="cell-person"><span class="avatar avatar-sm" style="background:var(--blue-soft);color:var(--navy);border-radius:8px"><i class="bi @c.Icon" aria-hidden="true"></i></span><div><span class="fw-650">@c.Name</span><div class="cell-sub">/@c.Slug</div></div></div></td>
+                                <td class="text-end tabular">@row.ProviderCount</td>
+                                <td class="text-end tabular">@row.ServiceCount</td>
+                                <td class="text-end tabular">@row.BookingCount</td>
+                                <td>@if (c.IsActive) { <span class="badge-status status-completed">Active</span> } else { <span class="badge-status status-cancelled">Hidden</span> }</td>
+                                <td class="text-end">
+                                    <div class="d-inline-flex gap-1">
+                                        <a class="btn btn-outline-ink btn-sm" asp-action="Categories" asp-route-edit="@c.Id">Edit</a>
+                                        <form asp-action="DeleteCategory" asp-route-id="@c.Id" method="post" data-confirm="Delete @c.Name? Categories in use can't be deleted - hide them instead."><button class="btn btn-soft-danger btn-sm" type="submit" aria-label="Delete @c.Name"><i class="bi bi-trash" aria-hidden="true"></i></button></form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4">
+        <form asp-action="Categories" method="post" class="surface" novalidate>
+            <div class="surface-head"><h2>@(editing ? "Edit category" : "Add category")</h2>@if (editing) { <a class="small" asp-action="Categories">Cancel</a> }</div>
+            <div class="surface-pad d-grid gap-3">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-0"></div>
+                <input type="hidden" asp-for="Id" />
+                <div><label asp-for="Name" class="form-label"></label><input asp-for="Name" class="form-control" data-slug-source /><span asp-validation-for="Name"></span></div>
+                <div><label asp-for="Slug" class="form-label">URL slug</label><input asp-for="Slug" class="form-control" data-slug-target /><span asp-validation-for="Slug"></span></div>
+                <div><label asp-for="Description" class="form-label"></label><textarea asp-for="Description" class="form-control" rows="2"></textarea></div>
+                <div class="row g-2">
+                    <div class="col-7"><label asp-for="Icon" class="form-label">Icon class</label><input asp-for="Icon" class="form-control" placeholder="bi-tools" /><span asp-validation-for="Icon"></span></div>
+                    <div class="col-5"><label asp-for="DisplayOrder" class="form-label">Order</label><input asp-for="DisplayOrder" class="form-control" /></div>
+                </div>
+                <div class="form-check form-switch"><input asp-for="IsActive" class="form-check-input" role="switch" /><label asp-for="IsActive" class="form-check-label">Visible to customers</label></div>
+                <button class="btn btn-primary" type="submit">@(editing ? "Save category" : "Add category")</button>
+                <p class="small text-muted mb-0">Icons use <a href="https://icons.getbootstrap.com/" target="_blank" rel="noopener">Bootstrap Icons</a> names.</p>
+            </div>
+        </form>
+    </div>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

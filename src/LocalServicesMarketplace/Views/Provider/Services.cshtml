@@ -1,0 +1,56 @@
+@model ServiceInputModel
+@{
+    var services = (IReadOnlyList<Service>)ViewBag.Services;
+    var categories = (IReadOnlyList<Category>)ViewBag.Categories;
+    var editing = Model.Id is > 0;
+}
+<partial name="_StatusBanner" />
+<div class="row g-4">
+    <div class="col-xl-7">
+        <div class="surface">
+            <div class="surface-head"><h2>Your services</h2><span class="small text-muted">@services.Count(s => s.IsActive) visible</span></div>
+            @if (services.Count == 0)
+            {
+                <div class="empty"><i class="bi bi-tools" aria-hidden="true"></i><h3>Add your first service</h3><p>Customers book a specific service at a set price. Add at least one to be verified.</p></div>
+            }
+            <div class="px-4">
+                @foreach (var s in services)
+                {
+                    <div class="service-row align-items-center">
+                        <div class="min-w-0">
+                            <h3>@s.Title @if (!s.IsActive) { <span class="badge-status status-cancelled ms-1">Hidden</span> }</h3>
+                            <div class="small text-muted">@s.Category.Name, about @s.DurationMinutes min</div>
+                        </div>
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="price"><strong>@s.Price.ToMoney()</strong><span>@s.PriceUnit.Label()</span></div>
+                            <a class="btn btn-outline-ink btn-sm" asp-action="Services" asp-route-edit="@s.Id">Edit</a>
+                            <form asp-action="DeleteService" asp-route-id="@s.Id" method="post" data-confirm="Remove &quot;@s.Title&quot;? Services with booking history are hidden instead of deleted.">
+                                <button class="btn btn-soft-danger btn-sm" type="submit" aria-label="Remove @s.Title"><i class="bi bi-trash" aria-hidden="true"></i></button>
+                            </form>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-5">
+        <form asp-action="Services" method="post" class="surface" novalidate id="service-form">
+            <div class="surface-head"><h2>@(editing ? "Edit service" : "Add a service")</h2>@if (editing) { <a class="small" asp-action="Services">Cancel</a> }</div>
+            <div class="surface-pad d-grid gap-3">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-0"></div>
+                <input type="hidden" asp-for="Id" />
+                <div><label asp-for="Title" class="form-label"></label><input asp-for="Title" class="form-control" placeholder="e.g. Ceiling fan installation" /><span asp-validation-for="Title"></span></div>
+                <div><label asp-for="CategoryId" class="form-label"></label><select asp-for="CategoryId" class="form-select" asp-items="@(new SelectList(categories, "Id", "Name"))"></select></div>
+                <div><label asp-for="Description" class="form-label"></label><textarea asp-for="Description" class="form-control" rows="3" placeholder="What's included and what's extra"></textarea></div>
+                <div class="row g-3">
+                    <div class="col-6"><label asp-for="Price" class="form-label">Price (₹)</label><input asp-for="Price" class="form-control" step="1" min="50" /><span asp-validation-for="Price"></span></div>
+                    <div class="col-6"><label asp-for="PriceUnit" class="form-label"></label><select asp-for="PriceUnit" class="form-select" asp-items="@Html.GetEnumSelectList<PriceUnit>()"></select></div>
+                    <div class="col-6"><label asp-for="DurationMinutes" class="form-label"></label><input asp-for="DurationMinutes" class="form-control" step="15" min="15" max="600" /><span asp-validation-for="DurationMinutes"></span></div>
+                    <div class="col-6 d-flex align-items-end"><div class="form-check form-switch mb-2"><input asp-for="IsActive" class="form-check-input" role="switch" /><label asp-for="IsActive" class="form-check-label"></label></div></div>
+                </div>
+                <button class="btn btn-primary" type="submit">@(editing ? "Save changes" : "Add service")</button>
+            </div>
+        </form>
+    </div>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

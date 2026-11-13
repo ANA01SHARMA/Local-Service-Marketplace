@@ -1,0 +1,22 @@
+@model IReadOnlyList<ProviderAdminListItemVm>
+<div class="table-responsive">
+    <table class="table table-clean">
+        <thead><tr><th>Provider</th><th>Category</th><th class="text-end">Experience</th><th class="text-end">Services</th><th class="text-end">Docs</th><th class="text-end">Rating</th><th>Verification</th><th class="text-end"><span class="visually-hidden">Actions</span></th></tr></thead>
+        <tbody>
+            @foreach (var p in Model)
+            {
+                <tr>
+                    <td><div class="cell-person"><avatar name="@p.Name" src="@p.ProfileImagePath" size="sm" /><div><span class="fw-650">@p.Name</span> @if (p.IsSampleData) { <span class="demo-badge">Demo</span> } @if (p.IsBlocked) { <span class="badge-status status-rejected">Blocked</span> }<div class="cell-sub">@p.Email</div></div></div></td>
+                    <td>@p.CategoryName<div class="cell-sub">@p.City</div></td>
+                    <td class="text-end tabular">@p.ExperienceYears yrs</td>
+                    <td class="text-end tabular">@p.ServiceCount</td>
+                    <td class="text-end tabular">@p.DocumentCount</td>
+                    <td class="text-end">@(p.TotalReviews > 0 ? $"{p.AverageRating:0.0} ({p.TotalReviews})" : "–")</td>
+                    <td><span class="badge-status @p.VerificationStatus.BadgeClass()">@p.VerificationStatus.Label()</span>@if (p.SubmittedAtUtc.HasValue && p.VerificationStatus == VerificationStatus.Pending) { <div class="cell-sub">since @Tz.Relative(p.SubmittedAtUtc.Value)</div> }</td>
+                    <td class="text-end"><a class="btn @(p.VerificationStatus == VerificationStatus.Pending ? "btn-navy" : "btn-outline-ink") btn-sm" asp-action="ReviewProvider" asp-route-id="@p.Id">@(p.VerificationStatus == VerificationStatus.Pending ? "Review" : "Open")</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+@if (Model.Count == 0) { <div class="empty"><i class="bi bi-person-badge" aria-hidden="true"></i><h3>No providers here</h3><p>Nothing matches this filter right now.</p></div> }

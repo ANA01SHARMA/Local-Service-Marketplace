@@ -1,0 +1,81 @@
+@model ProviderDashboardViewModel
+@{
+    var p = Model.Provider;
+    var perf = Model.Performance;
+    var remaining = Model.Checklist.Count(c => !c.Done);
+}
+@section TopActions { <a class="btn btn-outline-ink btn-sm d-none d-md-inline-flex" href="/providers/@p.Id" target="_blank"><i class="bi bi-box-arrow-up-right me-1" aria-hidden="true"></i>View public profile</a> }
+<partial name="_StatusBanner" />
+
+<div class="kpis kpis-5 mb-4">
+    <a class="kpi kpi-lead" asp-action="Earnings"><div class="label"><i class="bi bi-wallet2" aria-hidden="true"></i>Total earnings</div><div class="value">@((perf?.TotalEarnings ?? 0).ToMoney())</div><div class="sub">@Model.ThisMonthEarnings.ToMoney() this month</div></a>
+    <a class="kpi" asp-action="Requests"><div class="label"><i class="bi bi-inbox" aria-hidden="true"></i>Pending requests</div><div class="value">@Model.PendingRequests</div><div class="sub">waiting for your answer</div></a>
+    <a class="kpi" asp-action="Jobs" asp-route-status="upcoming"><div class="label"><i class="bi bi-calendar3" aria-hidden="true"></i>Total bookings</div><div class="value">@(perf?.TotalBookings ?? 0)</div><div class="sub">@Model.UpcomingJobs confirmed and upcoming</div></a>
+    <a class="kpi" asp-action="Jobs" asp-route-status="completed"><div class="label"><i class="bi bi-check2-all" aria-hidden="true"></i>Completed jobs</div><div class="value">@(perf?.CompletedJobs ?? 0)</div><div class="sub">@((perf?.CompletionRate ?? 0).ToString("0"))% completion rate</div></a>
+    <a class="kpi" asp-action="Reviews"><div class="label"><i class="bi bi-star" aria-hidden="true"></i>Average rating</div><div class="value">@(p.TotalReviews > 0 ? p.AverageRating.ToString("0.0") : "–")</div><div class="sub">@p.TotalReviews review@(p.TotalReviews == 1 ? "" : "s")</div></a>
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-8 d-grid gap-4 align-content-start">
+        <div class="surface">
+            <div class="surface-head"><h2>New booking requests</h2><a class="small fw-650" asp-action="Requests">See all</a></div>
+            @if (Model.LatestRequests.Count == 0)
+            {
+                <div class="empty"><i class="bi bi-inbox" aria-hidden="true"></i><h3>No requests waiting</h3><p>@(Model.FreeSlotsNext7Days == 0 ? "You have no free slots in the next week. Add some so customers can book you." : $"You have {Model.FreeSlotsNext7Days} free slots in the next 7 days.")</p><a class="btn btn-outline-ink btn-sm" asp-action="Availability">Manage availability</a></div>
+            }
+            else
+            {
+                <partial name="_BookingTable" model="(Model.LatestRequests, BookingScope.Provider)" />
+            }
+        </div>
+        <div class="surface">
+            <div class="surface-head"><h2>Next jobs</h2><a class="small fw-650" asp-action="Jobs" asp-route-status="upcoming">Upcoming jobs</a></div>
+            @if (Model.NextJobs.Count == 0)
+            {
+                <div class="empty"><i class="bi bi-calendar2" aria-hidden="true"></i><h3>No confirmed jobs</h3><p>Accepted requests appear here with the customer's address and phone.</p></div>
+            }
+            else
+            {
+                <partial name="_BookingTable" model="(Model.NextJobs, BookingScope.Provider)" />
+            }
+        </div>
+    </div>
+    <div class="col-xl-4 d-grid gap-4 align-content-start">
+        @if (remaining > 0)
+        {
+            <div class="surface surface-pad">
+                <h2 class="h5 mb-1">Get ready for customers</h2>
+                <p class="small text-muted">@remaining step@(remaining == 1 ? "" : "s") left</p>
+                <ul class="checklist">
+                    @foreach (var c in Model.Checklist)
+                    {
+                        <li class="@(c.Done ? "done" : "")"><span class="tick"><i class="bi bi-check-lg" aria-hidden="true"></i></span><span class="text flex-grow-1 small">@c.Label</span>@if (!c.Done) { <a class="small fw-650" href="@c.Action">Do it</a> }</li>
+                    }
+                </ul>
+            </div>
+        }
+        <div class="surface surface-pad">
+            <h2 class="h5 mb-0">Earnings, last 6 months</h2>
+            <p class="small text-muted">After the @(10)% platform fee</p>
+            <div class="chart-box-sm">
+                <canvas data-chart="bar" data-format="money" data-series="Earned"
+                        data-labels='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.EarningsTrend.Select(m => m.Label)))'
+                        data-values='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.EarningsTrend.Select(m => m.Net)))'
+                        role="img" aria-label="Bar chart of monthly earnings for the last 6 months"></canvas>
+            </div>
+            <details class="mt-2 small"><summary>View as table</summary>
+                <table class="table table-sm mt-2 mb-0"><tbody>@foreach (var m in Model.EarningsTrend) { <tr><td>@m.Label</td><td class="text-end tabular">@m.Net.ToMoney()</td><td class="text-end text-muted">@m.Jobs jobs</td></tr> }</tbody></table>
+            </details>
+        </div>
+        <div class="surface surface-pad">
+            <h2 class="h5">This week</h2>
+            <ul class="summary-list">
+                <li><span>Free slots in the next 7 days</span><strong>@Model.FreeSlotsNext7Days</strong></li>
+                <li><span>Accepting new bookings</span><strong>@(p.IsAcceptingBookings ? "Yes" : "Paused")</strong></li>
+                <li><span>Cancelled by customers</span><strong>@(perf?.CancelledJobs ?? 0)</strong></li>
+            </ul>
+            <a class="btn btn-outline-ink btn-sm mt-3" asp-action="Availability">Add time slots</a>
+        </div>
+    </div>
+</div>
+@section Scripts { <script src="~/lib/chartjs/chart.umd.min.js"></script><script src="~/js/charts.js" asp-append-version="true"></script> }

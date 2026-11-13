@@ -1,0 +1,217 @@
+@model HomeViewModel
+@{
+    string When(DateTime utc)
+    {
+        var d = DateOnly.FromDateTime(Tz.ToLocal(utc));
+        return d == Tz.LocalToday ? "Today" : d == Tz.LocalToday.AddDays(1) ? "Tomorrow" : Tz.Format(utc, "ddd d MMM");
+    }
+}
+
+<section class="hero">
+    <div class="container">
+        <div class="row g-5 align-items-center">
+            <div class="col-lg-7">
+                <h1>Find Trusted Professionals for Every Need.</h1>
+                <p class="lead">Book reliable local experts for your everyday services. Compare professionals, check ratings, and schedule services with confidence.</p>
+
+                <form class="hero-search" asp-controller="Services" asp-action="Index" method="get" role="search">
+                    <label class="field">
+                        <i class="bi bi-search" aria-hidden="true"></i>
+                        <span class="visually-hidden">Service</span>
+                        <input type="search" name="q" list="serviceSuggestions" placeholder="What do you need? e.g. AC service" autocomplete="off" />
+                        <datalist id="serviceSuggestions">
+                            @foreach (var c in Model.Categories) { <option value="@c.Name"></option> }
+                        </datalist>
+                    </label>
+                    <label class="field">
+                        <i class="bi bi-geo-alt" aria-hidden="true"></i>
+                        <span class="visually-hidden">City</span>
+                        <select name="city">
+                            <option value="">Any city</option>
+                            @foreach (var city in Model.Cities) { <option>@city</option> }
+                        </select>
+                    </label>
+                    <button class="btn btn-primary btn-lg" type="submit">Search</button>
+                </form>
+
+                <div class="hero-quick">
+                    <span class="small text-muted me-1">Popular:</span>
+                    @foreach (var c in Model.Categories.Take(5))
+                    {
+                        <a class="chip" href="/Services?category=@c.Slug"><i class="bi @c.Icon" aria-hidden="true"></i>@c.Name</a>
+                    }
+                </div>
+
+                <div class="hero-proof">
+                    <div><strong class="tabular">@Model.VerifiedProviders</strong><span>ID-verified professionals</span></div>
+                    <div><strong class="tabular">@Model.CompletedJobs</strong><span>jobs completed</span></div>
+                    <div><strong class="tabular">@Model.AverageRating.ToString("0.0")<small class="fs-6 text-muted">/5</small></strong><span>average rating</span></div>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="slot-board" aria-labelledby="slotBoardTitle">
+                    <div class="slot-board-title" id="slotBoardTitle"><span class="live-dot" aria-hidden="true"></span>Free to book soonest</div>
+                    @if (Model.NextAvailable.Count == 0)
+                    {
+                        <div class="surface surface-pad text-muted">Professionals are adding new slots. Check back shortly.</div>
+                    }
+                    @foreach (var s in Model.NextAvailable)
+                    {
+                        <a class="ticket" href="/providers/@s.ProviderId">
+                            <avatar name="@s.ProviderName" src="@s.ImagePath" />
+                            <div class="ticket-who">
+                                <div class="name">@s.ProviderName <i class="bi bi-patch-check-fill text-success small" style="color:var(--teal)!important" aria-label="Verified"></i></div>
+                                <div class="meta">
+                                    <span>@s.CategoryName</span>
+                                    <span>@s.City</span>
+                                    @if (s.Reviews > 0) { <span><i class="bi bi-star-fill" style="color:#F59E0B" aria-hidden="true"></i> @s.Rating.ToString("0.0")</span> }
+                                </div>
+                            </div>
+                            <div class="ticket-when">
+                                <div class="day">@When(s.StartUtc)</div>
+                                <div class="time">@Tz.FormatTime(s.StartUtc)</div>
+                                @if (s.StartingPrice.HasValue) { <div class="price">from @s.StartingPrice.ToMoney()</div> }
+                            </div>
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="section section-white" id="services">
+    <div class="container">
+        <div class="section-head">
+            <div>
+                <h2>Popular service categories</h2>
+                <p>Every professional below has had their ID checked by our team.</p>
+            </div>
+            <a class="btn btn-outline-ink" asp-controller="Services" asp-action="Index">See all services</a>
+        </div>
+        <div class="cat-grid">
+            @foreach (var c in Model.Categories)
+            {
+                <a class="cat-tile" href="/Services?category=@c.Slug">
+                    <span class="art">
+                        @if (!string.IsNullOrEmpty(c.ImagePath)) { <img src="@c.ImagePath" alt="" loading="lazy" /> }
+                        else { <i class="bi @c.Icon" aria-hidden="true"></i> }
+                    </span>
+                    <span class="name">@c.Name</span>
+                    <span class="meta">@(c.StartingPrice.HasValue ? $"From {c.StartingPrice.ToMoney()}" : "Coming soon")@(c.ProviderCount > 0 ? $", {c.ProviderCount} pro{(c.ProviderCount == 1 ? "" : "s")}" : "")</span>
+                </a>
+            }
+        </div>
+    </div>
+</section>
+
+@if (Model.FeaturedProviders.Count > 0)
+{
+    <section class="section">
+        <div class="container">
+            <div class="section-head">
+                <div>
+                    <h2>Highly rated professionals</h2>
+                    <p>Ranked by ratings from completed bookings only.</p>
+                </div>
+            </div>
+            <div class="row g-3">
+                @foreach (var p in Model.FeaturedProviders)
+                {
+                    <div class="col-md-6 col-xl-4">
+                        <partial name="_ProviderCard" model="p" />
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+}
+
+<section class="section section-white" id="how-it-works">
+    <div class="container">
+        <div class="section-head">
+            <div>
+                <h2>How it works</h2>
+                <p>From search to sorted in four steps.</p>
+            </div>
+        </div>
+        <ol class="steps list-unstyled m-0">
+            <li class="step"><h3>Search</h3><p>Tell us what needs doing and where. Filter by price, rating and the day you need.</p></li>
+            <li class="step"><h3>Compare</h3><p>Read verified reviews, check experience and see exact prices before you decide.</p></li>
+            <li class="step"><h3>Pick a slot</h3><p>Choose a free time from the professional's calendar. They confirm your request.</p></li>
+            <li class="step"><h3>Get it done</h3><p>The job is completed at your door. Rate the professional to help your neighbours.</p></li>
+        </ol>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <div class="row g-5">
+            <div class="col-lg-4">
+                <h2>Why people book with Kaarigar</h2>
+                <p class="text-muted mt-3">We built the marketplace around the questions people ask before letting someone into their home.</p>
+            </div>
+            <div class="col-lg-8">
+                <div class="row g-4">
+                    <div class="col-md-6"><div class="reason"><span class="icon"><i class="bi bi-person-check" aria-hidden="true"></i></span><div><h3>Checked before listing</h3><p>Professionals upload ID and trade certificates. An admin approves them before they can take bookings.</p></div></div></div>
+                    <div class="col-md-6"><div class="reason"><span class="icon"><i class="bi bi-receipt" aria-hidden="true"></i></span><div><h3>Price before you book</h3><p>Every service shows its price and what it covers, so there are no surprises at the door.</p></div></div></div>
+                    <div class="col-md-6"><div class="reason"><span class="icon"><i class="bi bi-calendar2-x" aria-hidden="true"></i></span><div><h3>Free cancellation</h3><p>Cancel or reschedule for free up to two hours before the appointment.</p></div></div></div>
+                    <div class="col-md-6"><div class="reason"><span class="icon"><i class="bi bi-chat-square-quote" aria-hidden="true"></i></span><div><h3>Honest reviews</h3><p>Only customers whose job was completed can leave a review, and only once per booking.</p></div></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@if (Model.Testimonials.Count > 0)
+{
+    <section class="section section-white">
+        <div class="container">
+            <div class="section-head">
+                <div>
+                    <h2>What customers say</h2>
+                    <p>Taken from reviews on completed bookings.</p>
+                </div>
+            </div>
+            <div class="row g-3">
+                @foreach (var t in Model.Testimonials)
+                {
+                    <div class="col-md-4">
+                        <figure class="quote m-0">
+                            <stars value="@t.Rating" />
+                            <blockquote>“@t.Comment”</blockquote>
+                            <figcaption>
+                                <avatar name="@t.CustomerName" size="sm" />
+                                <span><span class="who d-block">@t.CustomerName</span><span class="ctx">@t.ServiceTitle with @t.ProviderName</span></span>
+                            </figcaption>
+                        </figure>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+}
+
+<section class="section">
+    <div class="container">
+        <div class="cta-band">
+            <img class="tool-pattern" src="~/images/tools-pattern.svg" alt="" />
+            <div class="row g-4 align-items-center">
+                <div class="col-lg-6">
+                    <h2>Good at what you do? Get booked by people nearby.</h2>
+                    <p class="mt-3 mb-4">Set your own prices and hours. We send you customers, you do the work.</p>
+                    <a class="btn btn-teal btn-lg" asp-controller="Account" asp-action="RegisterProvider">Join as a professional</a>
+                    <a class="btn btn-link text-white ms-2" asp-controller="Home" asp-action="BecomeProvider">How it works for professionals</a>
+                </div>
+                <div class="col-lg-5 offset-lg-1">
+                    <ul>
+                        <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i><span>Keep 90% of every job. The 10% platform fee is the only charge.</span></li>
+                        <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i><span>Choose the days, hours and areas you work in.</span></li>
+                        <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i><span>Accept or decline each request yourself.</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

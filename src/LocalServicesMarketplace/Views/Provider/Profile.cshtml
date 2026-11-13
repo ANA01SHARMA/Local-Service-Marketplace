@@ -1,0 +1,54 @@
+@model ProviderProfileInputModel
+@{
+    var categories = (IReadOnlyList<Category>)ViewBag.Categories;
+    var cities = (IReadOnlyList<string>)ViewBag.Cities;
+}
+<partial name="_StatusBanner" />
+<form asp-action="Profile" method="post" enctype="multipart/form-data" novalidate>
+    <div class="row g-4">
+        <div class="col-xl-8 d-grid gap-4 align-content-start">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-0"></div>
+            <div class="surface">
+                <div class="surface-head"><h2>Public profile</h2><a class="small fw-650" href="/providers/@ViewBag.ProviderId" target="_blank">Preview</a></div>
+                <div class="surface-pad row g-3">
+                    <div class="col-md-6"><label asp-for="FullName" class="form-label"></label><input asp-for="FullName" class="form-control" /><span asp-validation-for="FullName"></span></div>
+                    <div class="col-md-6"><label asp-for="CategoryId" class="form-label"></label><select asp-for="CategoryId" class="form-select" asp-items="@(new SelectList(categories, "Id", "Name"))"></select><span asp-validation-for="CategoryId"></span></div>
+                    <div class="col-12"><label asp-for="Headline" class="form-label"></label><input asp-for="Headline" class="form-control" placeholder="One line customers see on your card" /><span asp-validation-for="Headline"></span></div>
+                    <div class="col-12"><label asp-for="Bio" class="form-label"></label><textarea asp-for="Bio" class="form-control" rows="5" placeholder="Your experience, training and how you work"></textarea><span asp-validation-for="Bio"></span></div>
+                    <div class="col-md-8"><label asp-for="Skills" class="form-label"></label><input asp-for="Skills" class="form-control" placeholder="e.g. House wiring, Fan installation, Inverters" /><span asp-validation-for="Skills"></span></div>
+                    <div class="col-md-4"><label asp-for="ExperienceYears" class="form-label"></label><input asp-for="ExperienceYears" class="form-control" min="0" max="60" /><span asp-validation-for="ExperienceYears"></span></div>
+                </div>
+            </div>
+            <div class="surface">
+                <div class="surface-head"><h2>Where you work</h2></div>
+                <div class="surface-pad row g-3">
+                    <div class="col-md-4"><label asp-for="City" class="form-label"></label><input asp-for="City" class="form-control" list="cityList" /><datalist id="cityList">@foreach (var c in cities) { <option value="@c"></option> }</datalist><span asp-validation-for="City"></span></div>
+                    <div class="col-md-8"><label asp-for="ServiceAreas" class="form-label"></label><input asp-for="ServiceAreas" class="form-control" placeholder="e.g. Saket, Malviya Nagar, Hauz Khas" /><span asp-validation-for="ServiceAreas"></span></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-4 d-grid gap-4 align-content-start">
+            <div class="surface surface-pad">
+                <h2 class="h5">Photo</h2>
+                <div class="d-flex align-items-center gap-3">
+                    <avatar name="@Model.FullName" src="@Model.ProfileImagePath" size="lg" />
+                    <div class="flex-grow-1"><label asp-for="Photo" class="visually-hidden"></label><input asp-for="Photo" type="file" class="form-control form-control-sm" accept=".jpg,.jpeg,.png,.webp" /><div class="form-text">A clear face photo builds trust. Max 2 MB.</div></div>
+                </div>
+            </div>
+            <div class="surface surface-pad">
+                <h2 class="h5">Contact</h2>
+                <div class="mb-3"><label class="form-label" for="emailRo">E-mail</label><input id="emailRo" class="form-control" value="@Model.Email" readonly /></div>
+                <div><label asp-for="PhoneNumber" class="form-label"></label><input asp-for="PhoneNumber" class="form-control" /><div class="form-text">Shared with customers only after you accept their booking.</div><span asp-validation-for="PhoneNumber"></span></div>
+            </div>
+            <div class="surface surface-pad">
+                <div class="form-check form-switch">
+                    <input asp-for="IsAcceptingBookings" class="form-check-input" role="switch" />
+                    <label asp-for="IsAcceptingBookings" class="form-check-label fw-650"></label>
+                </div>
+                <p class="small text-muted mt-2 mb-0">Turn off when you're on leave. Existing bookings are not affected.</p>
+            </div>
+            <button class="btn btn-primary btn-lg" type="submit">Save profile</button>
+        </div>
+    </div>
+</form>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

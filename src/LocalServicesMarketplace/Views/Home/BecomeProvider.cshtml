@@ -1,0 +1,50 @@
+@{
+    var categories = (IReadOnlyList<CategoryTileVm>)ViewBag.Categories;
+}
+<section class="page-hero">
+    <div class="container">
+        <div class="row g-5 align-items-center">
+            <div class="col-lg-7">
+                <h1>Your skills, your hours, more customers</h1>
+                <p class="lead">List your services on Kaarigar and get booking requests from customers in your area. You set the price and choose which jobs to take.</p>
+                <div class="d-flex flex-wrap gap-2 mt-4">
+                    <a class="btn btn-primary btn-lg" asp-controller="Account" asp-action="RegisterProvider">Create a professional account</a>
+                    <a class="btn btn-outline-ink btn-lg" asp-controller="Account" asp-action="Login">I already have an account</a>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="surface surface-pad">
+                    <h2 class="h4 mb-3">What you keep</h2>
+                    <ul class="summary-list">
+                        <li><span>Customer pays for a ₹1,000 job</span><strong>₹1,000</strong></li>
+                        <li><span>Platform fee (10%)</span><strong>−₹100</strong></li>
+                        <li class="pt-2 border-top"><span class="text-body fw-650">You earn</span><strong class="fs-5">₹900</strong></li>
+                    </ul>
+                    <p class="small text-muted mt-3 mb-0">No sign-up fee, no monthly charge. You only pay when you complete a job.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<section class="section section-white">
+    <div class="container">
+        <h2 class="mb-4">Getting verified takes four steps</h2>
+        <ol class="steps list-unstyled m-0">
+            <li class="step"><h3>Create your account</h3><p>Pick your main category and city. It takes two minutes.</p></li>
+            <li class="step"><h3>Build your profile</h3><p>Add a photo, your experience, the services you offer and their prices.</p></li>
+            <li class="step"><h3>Upload documents</h3><p>A government ID and any trade certificate, as PDF, JPG or PNG. Only admins can see them.</p></li>
+            <li class="step"><h3>Go live</h3><p>Once an admin approves you, publish your free time slots and start getting requests.</p></li>
+        </ol>
+    </div>
+</section>
+<section class="section">
+    <div class="container">
+        <h2 class="mb-4">Categories we're hiring for</h2>
+        <div class="d-flex flex-wrap gap-2">
+            @foreach (var c in categories)
+            {
+                <a class="chip" asp-controller="Account" asp-action="RegisterProvider" asp-route-categoryId="@c.Id"><i class="bi @c.Icon" aria-hidden="true"></i>@c.Name</a>
+            }
+        </div>
+    </div>
+</section>

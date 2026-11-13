@@ -1,0 +1,35 @@
+@model RegisterProviderViewModel
+@{ var categories = (IReadOnlyList<Category>)ViewBag.Categories; }
+<section class="auth-wrap">
+    <div class="auth-card wide">
+        <div class="role-switch" role="tablist" aria-label="Account type">
+            <a asp-action="Register">I need a service</a>
+            <a class="active" asp-action="RegisterProvider" aria-current="page">I offer a service</a>
+        </div>
+        <div class="surface surface-pad">
+            <h1 class="h2 mb-1">Join as a professional</h1>
+            <p class="text-muted">You'll be able to take bookings after an admin verifies your documents.</p>
+            <form asp-action="RegisterProvider" method="post" novalidate>
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+                <partial name="_RegisterFields" model="Model" />
+                <div class="row g-3 mt-0">
+                    <div class="col-md-6">
+                        <label asp-for="CategoryId" class="form-label"></label>
+                        <select asp-for="CategoryId" class="form-select" asp-items="@(new SelectList(categories, "Id", "Name"))"><option value="">Choose a category</option></select>
+                        <span asp-validation-for="CategoryId"></span>
+                    </div>
+                    <div class="col-md-6"><label asp-for="ExperienceYears" class="form-label"></label><input asp-for="ExperienceYears" class="form-control" min="0" max="60" /><span asp-validation-for="ExperienceYears"></span></div>
+                    <div class="col-12"><label asp-for="Headline" class="form-label"></label><input asp-for="Headline" class="form-control" placeholder="e.g. Licensed electrician for homes and offices" /><span asp-validation-for="Headline"></span></div>
+                </div>
+                <div class="form-check mt-3">
+                    <input asp-for="AcceptTerms" class="form-check-input" />
+                    <label asp-for="AcceptTerms" class="form-check-label">I agree to the <a asp-controller="Home" asp-action="Terms" target="_blank">terms</a> and to a 10% platform fee on completed jobs</label>
+                    <div><span asp-validation-for="AcceptTerms"></span></div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-lg w-100 mt-4">Create professional account</button>
+            </form>
+            <p class="small text-center mt-4 mb-0">Already registered? <a asp-action="Login">Sign in</a></p>
+        </div>
+    </div>
+</section>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

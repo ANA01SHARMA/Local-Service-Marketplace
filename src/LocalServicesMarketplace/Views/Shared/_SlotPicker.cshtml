@@ -1,0 +1,44 @@
+@model (IReadOnlyList<SlotDayVm> Days, string InputName, int? Selected)
+@if (Model.Days.Count == 0)
+{
+    <div class="empty border rounded-4 bg-white">
+        <i class="bi bi-calendar-x" aria-hidden="true"></i>
+        <h3>No free slots in the next two weeks</h3>
+        <p>This professional is fully booked. Try another professional in the same category.</p>
+        <a class="btn btn-outline-ink btn-sm" asp-controller="Services" asp-action="Index">Browse other professionals</a>
+    </div>
+}
+else
+{
+    <div data-slot-picker>
+        <div class="day-tabs scroll-x" role="tablist" aria-label="Choose a day" data-scroll-x>
+            @foreach (var day in Model.Days)
+            {
+                var key = day.Date.ToString("yyyy-MM-dd");
+                <button type="button" class="day-tab" role="tab" data-day-tab="@key" aria-selected="false">
+                    <span class="dow">@(day.Date == Tz.LocalToday ? "Today" : day.Date == Tz.LocalToday.AddDays(1) ? "Tomorrow" : day.Date.ToString("ddd"))</span>
+                    <span class="dom">@day.Date.ToString("d MMM")</span>
+                    <span class="cnt">@day.Slots.Count free</span>
+                </button>
+            }
+        </div>
+        @foreach (var day in Model.Days)
+        {
+            var key = day.Date.ToString("yyyy-MM-dd");
+            <fieldset class="slot-day mt-3" data-day="@key">
+                <legend class="small-label mb-2">@day.Date.ToString("dddd, d MMMM")</legend>
+                <div class="slot-grid">
+                    @foreach (var slot in day.Slots)
+                    {
+                        var id = $"slot-{slot.Id}";
+                        <div class="slot-option">
+                            <input type="radio" id="@id" name="@Model.InputName" value="@slot.Id" @(Model.Selected == slot.Id ? "checked" : "")
+                                   data-label="@Tz.Format(slot.StartUtc, "ddd d MMM, h:mm tt")" required data-val="true" data-val-required="Choose a time slot." />
+                            <label for="@id">@Tz.FormatTime(slot.StartUtc)</label>
+                        </div>
+                    }
+                </div>
+            </fieldset>
+        }
+    </div>
+}

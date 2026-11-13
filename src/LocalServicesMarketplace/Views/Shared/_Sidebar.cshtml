@@ -1,0 +1,70 @@
+@{
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+    var action = ViewContext.RouteData.Values["action"]?.ToString();
+    var status = Context.Request.Query["status"].ToString();
+    string Is(string c, string a, string? s = null) =>
+        controller == c && action == a && (s is null || string.Equals(status, s, StringComparison.OrdinalIgnoreCase)) ? "active" : "";
+}
+<aside class="dash-sidebar" aria-label="Dashboard navigation">
+    <a class="brand" asp-controller="Home" asp-action="Index"><partial name="_Brand" /></a>
+
+    <nav class="nav flex-column">
+        @if (User.IsInRole(AppRoles.Admin))
+        {
+            <a class="nav-link @Is("Admin", "Index")" asp-controller="Admin" asp-action="Index"><i class="bi bi-speedometer2"></i>Dashboard</a>
+            <div class="nav-section">People</div>
+            <a class="nav-link @Is("Admin", "Users")" asp-controller="Admin" asp-action="Users"><i class="bi bi-people"></i>Manage users</a>
+            <a class="nav-link @(Is("Admin", "Providers") + Is("Admin", "ReviewProvider"))" asp-controller="Admin" asp-action="Providers"><i class="bi bi-person-badge"></i>Manage providers</a>
+            <a class="nav-link @Is("Admin", "Verification")" asp-controller="Admin" asp-action="Verification"><i class="bi bi-patch-check"></i>Provider verification</a>
+            <div class="nav-section">Marketplace</div>
+            <a class="nav-link @Is("Admin", "Categories")" asp-controller="Admin" asp-action="Categories"><i class="bi bi-grid"></i>Manage categories</a>
+            <a class="nav-link @Is("Admin", "Services")" asp-controller="Admin" asp-action="Services"><i class="bi bi-tools"></i>Manage services</a>
+            <a class="nav-link @(Is("Admin", "Bookings") + Is("Booking", "Details"))" asp-controller="Admin" asp-action="Bookings"><i class="bi bi-calendar3"></i>Manage bookings</a>
+            <a class="nav-link @Is("Admin", "Complaints")" asp-controller="Admin" asp-action="Complaints"><i class="bi bi-life-preserver"></i>Manage complaints</a>
+            <a class="nav-link @Is("Admin", "Reports")" asp-controller="Admin" asp-action="Reports"><i class="bi bi-bar-chart-line"></i>Reports and analytics</a>
+        }
+        else if (User.IsInRole(AppRoles.Provider))
+        {
+            <a class="nav-link @Is("Provider", "Index")" asp-controller="Provider" asp-action="Index"><i class="bi bi-speedometer2"></i>Overview</a>
+            <div class="nav-section">Work</div>
+            <a class="nav-link @Is("Provider", "Requests")" asp-controller="Provider" asp-action="Requests"><i class="bi bi-inbox"></i>Booking requests</a>
+            <a class="nav-link @(Is("Provider", "Jobs", "upcoming") + (controller == "Provider" && action == "Jobs" && string.IsNullOrEmpty(status) ? "active" : ""))" asp-controller="Provider" asp-action="Jobs" asp-route-status="upcoming"><i class="bi bi-calendar-week"></i>Upcoming jobs</a>
+            <a class="nav-link @Is("Provider", "Jobs", "completed")" asp-controller="Provider" asp-action="Jobs" asp-route-status="completed"><i class="bi bi-check2-all"></i>Completed jobs</a>
+            <a class="nav-link @Is("Provider", "Availability")" asp-controller="Provider" asp-action="Availability"><i class="bi bi-clock"></i>Availability</a>
+            <a class="nav-link @Is("Provider", "Earnings")" asp-controller="Provider" asp-action="Earnings"><i class="bi bi-wallet2"></i>Earnings</a>
+            <a class="nav-link @Is("Provider", "Reviews")" asp-controller="Provider" asp-action="Reviews"><i class="bi bi-star"></i>Reviews</a>
+            <div class="nav-section">Profile</div>
+            <a class="nav-link @Is("Provider", "Profile")" asp-controller="Provider" asp-action="Profile"><i class="bi bi-person-vcard"></i>My profile</a>
+            <a class="nav-link @Is("Provider", "Services")" asp-controller="Provider" asp-action="Services"><i class="bi bi-tools"></i>My services</a>
+            <a class="nav-link @Is("Provider", "Verification")" asp-controller="Provider" asp-action="Verification"><i class="bi bi-patch-check"></i>Verification</a>
+            <a class="nav-link @Is("Notifications", "Index")" asp-controller="Notifications" asp-action="Index"><i class="bi bi-bell"></i>Notifications</a>
+            <a class="nav-link @Is("Support", "Index")" asp-controller="Support" asp-action="Index"><i class="bi bi-life-preserver"></i>Help and complaints</a>
+        }
+        else
+        {
+            <a class="nav-link @Is("Customer", "Index")" asp-controller="Customer" asp-action="Index"><i class="bi bi-speedometer2"></i>Overview</a>
+            <a class="nav-link" asp-controller="Services" asp-action="Index"><i class="bi bi-search"></i>Browse services</a>
+            <div class="nav-section">Bookings</div>
+            <a class="nav-link @(controller == "Customer" && action == "Bookings" && (status == "" || status == "all") ? "active" : "")" asp-controller="Customer" asp-action="Bookings"><i class="bi bi-calendar3"></i>My bookings</a>
+            <a class="nav-link @Is("Customer", "Bookings", "upcoming")" asp-controller="Customer" asp-action="Bookings" asp-route-status="upcoming"><i class="bi bi-calendar-week"></i>Upcoming bookings</a>
+            <a class="nav-link @Is("Customer", "Bookings", "history")" asp-controller="Customer" asp-action="Bookings" asp-route-status="history"><i class="bi bi-clock-history"></i>Booking history</a>
+            <a class="nav-link @Is("Customer", "Reviews")" asp-controller="Customer" asp-action="Reviews"><i class="bi bi-star"></i>My reviews</a>
+            <div class="nav-section">Account</div>
+            <a class="nav-link @Is("Notifications", "Index")" asp-controller="Notifications" asp-action="Index"><i class="bi bi-bell"></i>Notifications</a>
+            <a class="nav-link @Is("Account", "Profile")" asp-controller="Account" asp-action="Profile"><i class="bi bi-person"></i>My profile</a>
+            <a class="nav-link @Is("Support", "Index")" asp-controller="Support" asp-action="Index"><i class="bi bi-life-preserver"></i>Help and complaints</a>
+        }
+        @if (User.IsInRole(AppRoles.Admin))
+        {
+            <div class="nav-section">Account</div>
+            <a class="nav-link @Is("Notifications", "Index")" asp-controller="Notifications" asp-action="Index"><i class="bi bi-bell"></i>Notifications</a>
+            <a class="nav-link @Is("Account", "Profile")" asp-controller="Account" asp-action="Profile"><i class="bi bi-person"></i>My profile</a>
+        }
+    </nav>
+
+    <div class="sidebar-foot">
+        <form asp-controller="Account" asp-action="Logout" method="post">
+            <button type="submit" class="nav-link logout"><i class="bi bi-box-arrow-left"></i>Logout</button>
+        </form>
+    </div>
+</aside>

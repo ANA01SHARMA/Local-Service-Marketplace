@@ -1,0 +1,15 @@
+@model RegisterCustomerViewModel
+@{ var cities = (IReadOnlyList<string>)ViewBag.Cities; }
+<div class="row g-3">
+    <div class="col-md-6"><label asp-for="FullName" class="form-label"></label><input asp-for="FullName" class="form-control" autocomplete="name" /><span asp-validation-for="FullName"></span></div>
+    <div class="col-md-6"><label asp-for="PhoneNumber" class="form-label"></label><input asp-for="PhoneNumber" class="form-control" autocomplete="tel" placeholder="10-digit mobile" /><span asp-validation-for="PhoneNumber"></span></div>
+    <div class="col-md-6"><label asp-for="Email" class="form-label">E-mail</label><input asp-for="Email" class="form-control" autocomplete="email" /><span asp-validation-for="Email"></span></div>
+    <div class="col-md-6">
+        <label asp-for="City" class="form-label"></label>
+        <input asp-for="City" class="form-control" list="cityList" autocomplete="address-level2" />
+        <datalist id="cityList">@foreach (var c in cities) { <option value="@c"></option> }</datalist>
+        <span asp-validation-for="City"></span>
+    </div>
+    <div class="col-md-6"><label asp-for="Password" class="form-label"></label><input asp-for="Password" class="form-control" autocomplete="new-password" /><span asp-validation-for="Password"></span><div class="form-text">At least 8 characters with upper and lower case letters and a number.</div></div>
+    <div class="col-md-6"><label asp-for="ConfirmPassword" class="form-label"></label><input asp-for="ConfirmPassword" class="form-control" autocomplete="new-password" /><span asp-validation-for="ConfirmPassword"></span></div>
+</div>

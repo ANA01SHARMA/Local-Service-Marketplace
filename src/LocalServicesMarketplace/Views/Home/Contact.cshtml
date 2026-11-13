@@ -1,0 +1,37 @@
+@model ContactViewModel
+<section class="page-hero">
+    <div class="container">
+        <nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a asp-action="Index">Home</a></li><li class="breadcrumb-item active" aria-current="page">Contact</li></ol></nav>
+        <h1>Talk to us</h1>
+        <p class="lead">Questions about a booking, becoming a professional or this project? Send a message and we'll reply by e-mail.</p>
+    </div>
+</section>
+<section class="section-tight pt-0">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-lg-7">
+                <form asp-action="Contact" method="post" class="surface surface-pad" novalidate>
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+                    <div class="row g-3">
+                        <div class="col-md-6"><label asp-for="Name" class="form-label">Your name</label><input asp-for="Name" class="form-control" autocomplete="name" /><span asp-validation-for="Name"></span></div>
+                        <div class="col-md-6"><label asp-for="Email" class="form-label">E-mail</label><input asp-for="Email" class="form-control" autocomplete="email" /><span asp-validation-for="Email"></span></div>
+                        <div class="col-12"><label asp-for="Subject" class="form-label"></label><input asp-for="Subject" class="form-control" /><span asp-validation-for="Subject"></span></div>
+                        <div class="col-12"><label asp-for="Message" class="form-label"></label><textarea asp-for="Message" class="form-control" rows="6"></textarea><span asp-validation-for="Message"></span></div>
+                    </div>
+                    <button class="btn btn-primary mt-4" type="submit">Send message</button>
+                </form>
+            </div>
+            <div class="col-lg-5">
+                <div class="surface surface-pad">
+                    <h2 class="h4">Other ways to reach us</h2>
+                    <ul class="list-unstyled d-grid gap-3 mt-3 mb-0">
+                        <li class="d-flex gap-3"><i class="bi bi-envelope fs-5 text-primary" aria-hidden="true"></i><span><strong class="d-block">E-mail</strong>support@kaarigar.test</span></li>
+                        <li class="d-flex gap-3"><i class="bi bi-clock fs-5 text-primary" aria-hidden="true"></i><span><strong class="d-block">Support hours</strong>Monday to Saturday, 9 am to 7 pm IST</span></li>
+                        <li class="d-flex gap-3"><i class="bi bi-life-preserver fs-5 text-primary" aria-hidden="true"></i><span><strong class="d-block">Problem with a booking?</strong>Sign in and use Help and complaints so we can see the booking details.</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

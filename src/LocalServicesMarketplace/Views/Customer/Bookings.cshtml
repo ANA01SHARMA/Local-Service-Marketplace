@@ -1,0 +1,43 @@
+@model PagedResult<BookingListItemVm>
+@{
+    var query = (BookingQuery)ViewData["Query"]!;
+    var counts = (IReadOnlyDictionary<BookingStatus, int>)ViewBag.Counts;
+    var current = string.IsNullOrEmpty(query.Status) ? "all" : query.Status;
+    var tabs = new (string Key, string Label, int? Count)[]
+    {
+        ("all", "All", counts.Values.Sum()), ("upcoming", "Upcoming", null), ("history", "History", null),
+        ("pending", "Pending", counts[BookingStatus.Pending]), ("confirmed", "Confirmed", counts[BookingStatus.Confirmed]),
+        ("completed", "Completed", counts[BookingStatus.Completed]), ("cancelled", "Cancelled", counts[BookingStatus.Cancelled]),
+        ("rejected", "Declined", counts[BookingStatus.Rejected])
+    };
+}
+@section TopActions { <a class="btn btn-primary btn-sm d-none d-md-inline-flex" asp-controller="Services" asp-action="Index"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>New booking</a> }
+
+<nav class="tabs-underline scroll-x" data-scroll-x aria-label="Filter bookings">
+    @foreach (var t in tabs)
+    {
+        <a class="@(current == t.Key ? "active" : "")" asp-action="Bookings" asp-route-status="@(t.Key == "all" ? null : t.Key)" aria-current="@(current == t.Key ? "page" : null)">@t.Label @if (t.Count.HasValue) { <span class="n">@t.Count</span> }</a>
+    }
+</nav>
+
+<form method="get" class="d-flex flex-wrap gap-2 mb-3">
+    <input type="hidden" name="status" value="@query.Status" />
+    <label class="visually-hidden" for="bq">Search bookings</label>
+    <input id="bq" class="form-control" style="max-width:320px" type="search" name="q" value="@query.Q" placeholder="Search by reference, service or professional" />
+    <button class="btn btn-outline-ink" type="submit">Search</button>
+</form>
+
+<div class="surface">
+    @if (Model.Items.Count == 0)
+    {
+        <div class="empty"><i class="bi bi-calendar-x" aria-hidden="true"></i><h3>No bookings here</h3><p>Bookings matching this filter will appear here.</p><a class="btn btn-primary" asp-controller="Services" asp-action="Index">Book a professional</a></div>
+    }
+    else
+    {
+        <partial name="_BookingTable" model="(Model.Items, BookingScope.Customer)" />
+    }
+</div>
+<div class="d-flex justify-content-between align-items-center mt-3">
+    <span class="small text-muted">@Model.TotalCount booking@(Model.TotalCount == 1 ? "" : "s")</span>
+    <pager page="@Model.Page" total-pages="@Model.TotalPages" />
+</div>

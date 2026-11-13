@@ -1,0 +1,32 @@
+@{
+    var code = (int)ViewBag.Code;
+}
+<section class="auth-wrap">
+    <div class="text-center" style="max-width:520px">
+        <div class="display-1 fw-bold" style="font-family:var(--font-display);color:var(--navy)">@code</div>
+        @if (code == 404)
+        {
+            <h1 class="h2">We couldn't find that page</h1>
+            <p class="text-muted mx-auto">The link may be broken, or the professional may no longer be listed.</p>
+        }
+        else if (code == 403)
+        {
+            <h1 class="h2">You don't have access to this page</h1>
+            <p class="text-muted mx-auto">Sign in with an account that has permission to view it.</p>
+        }
+        else if (code == 429)
+        {
+            <h1 class="h2">Too many attempts</h1>
+            <p class="text-muted mx-auto">Wait a minute and try again.</p>
+        }
+        else
+        {
+            <h1 class="h2">That request didn't work</h1>
+            <p class="text-muted mx-auto">Check the details and try again.</p>
+        }
+        <div class="d-flex gap-2 justify-content-center">
+            <a class="btn btn-primary" asp-controller="Home" asp-action="Index">Go home</a>
+            <a class="btn btn-outline-ink" asp-controller="Services" asp-action="Index">Browse services</a>
+        </div>
+    </div>
+</section>

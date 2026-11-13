@@ -1,0 +1,22 @@
+# Build output
+bin/
+obj/
+publish/
+TestResults/
+*.user
+*.suo
+.vs/
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Runtime data (uploads, private documents, data-protection keys)
+src/LocalServicesMarketplace/storage/
+
+# Local secrets
+.env
+appsettings.*.local.json
+
+# OS
+.DS_Store
+Thumbs.db

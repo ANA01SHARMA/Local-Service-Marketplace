@@ -1,0 +1,125 @@
+@model AdminDashboardViewModel
+@{
+    var monthLabels = Model.Monthly.Select(m => new DateTime(m.Year, m.Month, 1).ToString("MMM yy"));
+    var statuses = new[] { BookingStatus.Pending, BookingStatus.Confirmed, BookingStatus.Completed, BookingStatus.Cancelled, BookingStatus.Rejected };
+    // Status colours carry meaning (state), and every bar is also labelled by name.
+    var statusColors = new Dictionary<BookingStatus, string> { [BookingStatus.Pending] = "#D97706", [BookingStatus.Confirmed] = "#2563EB", [BookingStatus.Completed] = "#059669", [BookingStatus.Cancelled] = "#94A3B8", [BookingStatus.Rejected] = "#DC2626" };
+    string Json(object o) => System.Text.Json.JsonSerializer.Serialize(o);
+}
+<div class="kpis mb-3">
+    <a class="kpi kpi-lead" asp-action="Reports"><div class="label"><i class="bi bi-cash-stack" aria-hidden="true"></i>Total platform revenue</div><div class="value">@Model.TotalRevenue.ToMoney()</div><div class="sub">fees from @Model.CompletedBookings completed bookings</div></a>
+    <a class="kpi" asp-action="Users"><div class="label"><i class="bi bi-people" aria-hidden="true"></i>Total users</div><div class="value">@Model.TotalUsers</div><div class="sub">@Model.TotalCustomers customers, @Model.TotalProviders providers</div></a>
+    <a class="kpi" asp-action="Bookings"><div class="label"><i class="bi bi-calendar3" aria-hidden="true"></i>Total bookings</div><div class="value">@Model.TotalBookings</div><div class="sub">@Model.CompletedBookings completed, @Model.CancelledBookings cancelled</div></a>
+    <a class="kpi" asp-action="Verification"><div class="label"><i class="bi bi-patch-question" aria-hidden="true"></i>Pending provider approvals</div><div class="value">@Model.PendingApprovals</div><div class="sub">@Model.OpenComplaints open complaint@(Model.OpenComplaints == 1 ? "" : "s")</div></a>
+</div>
+<div class="kpis mb-4">
+    <a class="kpi" asp-action="Users" asp-route-role="Customer"><div class="label">Total customers</div><div class="value">@Model.TotalCustomers</div></a>
+    <a class="kpi" asp-action="Providers"><div class="label">Total providers</div><div class="value">@Model.TotalProviders</div></a>
+    <a class="kpi" asp-action="Bookings" asp-route-status="completed"><div class="label">Completed bookings</div><div class="value">@Model.CompletedBookings</div></a>
+    <a class="kpi" asp-action="Bookings" asp-route-status="cancelled"><div class="label">Cancelled bookings</div><div class="value">@Model.CancelledBookings</div></a>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-xl-8">
+        <div class="surface surface-pad h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div><h2 class="h5 mb-0">Monthly bookings</h2><p class="small text-muted">Bookings created per month, last 12 months. Source: <code>dbo.MonthlyBookingStatistics</code> view.</p></div>
+            </div>
+            <div class="chart-box">
+                <canvas data-chart="bar" data-format="count" data-series="Bookings" data-labels='@Html.Raw(Json(monthLabels))' data-values='@Html.Raw(Json(Model.Monthly.Select(m => m.TotalBookings)))'
+                        role="img" aria-label="Bar chart of bookings per month for the last 12 months. Values are in the table below the chart."></canvas>
+            </div>
+            <details class="small mt-2"><summary>View as table</summary>
+                <div class="table-responsive"><table class="table table-sm mt-2 mb-0"><thead><tr><th>Month</th><th class="text-end">Bookings</th><th class="text-end">Completed</th><th class="text-end">Cancelled</th><th class="text-end">Revenue</th></tr></thead>
+                    <tbody>@foreach (var m in Model.Monthly) { <tr><td>@(new DateTime(m.Year, m.Month, 1).ToString("MMM yyyy"))</td><td class="text-end tabular">@m.TotalBookings</td><td class="text-end tabular">@m.CompletedBookings</td><td class="text-end tabular">@m.CancelledBookings</td><td class="text-end tabular">@m.PlatformRevenue.ToMoney()</td></tr> }</tbody></table></div>
+            </details>
+        </div>
+    </div>
+    <div class="col-xl-4">
+        <div class="surface surface-pad h-100">
+            <h2 class="h5 mb-0">Booking status distribution</h2>
+            <p class="small text-muted">All bookings by current status</p>
+            <div class="chart-box">
+                <canvas data-chart="hbar" data-format="count" data-series="Bookings"
+                        data-labels='@Html.Raw(Json(statuses.Select(s => s.ToString())))'
+                        data-values='@Html.Raw(Json(statuses.Select(s => Model.StatusDistribution[s])))'
+                        data-colors='@Html.Raw(Json(statuses.Select(s => statusColors[s])))'
+                        role="img" aria-label="@string.Join(", ", statuses.Select(s => $"{s}: {Model.StatusDistribution[s]}"))"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-xl-6">
+        <div class="surface h-100">
+            <div class="surface-head"><h2>Pending provider verification</h2><a class="small fw-650" asp-action="Verification">Open queue</a></div>
+            @if (Model.PendingProviders.Count == 0)
+            {
+                <div class="empty"><i class="bi bi-patch-check" aria-hidden="true"></i><h3>Queue is clear</h3><p>New applications show up here when providers submit their documents.</p></div>
+            }
+            <ul class="activity px-4 py-2">
+                @foreach (var p in Model.PendingProviders)
+                {
+                    <li class="align-items-center">
+                        <avatar name="@p.Name" src="@p.ProfileImagePath" size="sm" />
+                        <div class="flex-grow-1 min-w-0"><strong>@p.Name</strong> @if (p.IsSampleData) { <span class="demo-badge">Demo</span> }<div class="cell-sub">@p.CategoryName in @p.City, @p.DocumentCount document@(p.DocumentCount == 1 ? "" : "s")</div></div>
+                        <a class="btn btn-navy btn-sm" asp-action="ReviewProvider" asp-route-id="@p.Id">Review</a>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+    <div class="col-xl-6">
+        <div class="surface h-100">
+            <div class="surface-head"><h2>Top-rated providers</h2><span class="small text-muted">Source: <code>dbo.TopRatedProviders</code></span></div>
+            <div class="table-responsive">
+                <table class="table table-clean">
+                    <thead><tr><th>Provider</th><th>Category</th><th class="text-end">Rating</th><th class="text-end">Jobs</th></tr></thead>
+                    <tbody>
+                        @foreach (var p in Model.TopRated)
+                        {
+                            <tr>
+                                <td><div class="cell-person"><avatar name="@p.ProviderName" src="@p.ProfileImagePath" size="sm" /><a class="fw-650 text-body text-decoration-none" asp-action="ReviewProvider" asp-route-id="@p.ProviderId">@p.ProviderName</a></div></td>
+                                <td>@p.CategoryName<div class="cell-sub">@p.City</div></td>
+                                <td class="text-end"><span class="rating"><i class="bi bi-star-fill" aria-hidden="true"></i>@p.AverageRating.ToString("0.00")</span><div class="cell-sub">@p.TotalReviews reviews</div></td>
+                                <td class="text-end tabular">@p.CompletedJobs</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="surface mb-4">
+    <div class="surface-head"><h2>Recent bookings</h2><a class="small fw-650" asp-action="Bookings">All bookings</a></div>
+    <partial name="_BookingTable" model="(Model.RecentBookings, BookingScope.Admin)" />
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-6">
+        <div class="surface h-100">
+            <div class="surface-head"><h2>Recent platform activity</h2></div>
+            <ul class="activity px-4 py-2">
+                @foreach (var a in Model.Activities)
+                {
+                    <li><i class="bi @a.Icon" aria-hidden="true"></i><div class="min-w-0"><div><strong>@a.Action</strong></div><div class="cell-sub">@a.Details</div><div class="cell-sub">@Tz.Relative(a.CreatedAtUtc)</div></div></li>
+                }
+            </ul>
+        </div>
+    </div>
+    <div class="col-xl-6">
+        <div class="surface h-100">
+            <div class="surface-head"><h2>Recently registered</h2><a class="small fw-650" asp-action="Users">All users</a></div>
+            <ul class="activity px-4 py-2">
+                @foreach (var u in Model.RecentUsers)
+                {
+                    <li class="align-items-center"><avatar name="@u.FullName" src="@u.ProfileImagePath" size="sm" /><div class="flex-grow-1 min-w-0"><strong>@u.FullName</strong> @if (u.IsSampleData) { <span class="demo-badge">Demo</span> }<div class="cell-sub">@u.Role, @Tz.Relative(u.CreatedAtUtc)</div></div></li>
+                }
+            </ul>
+        </div>
+    </div>
+</div>
+@section Scripts { <script src="~/lib/chartjs/chart.umd.min.js"></script><script src="~/js/charts.js" asp-append-version="true"></script> }

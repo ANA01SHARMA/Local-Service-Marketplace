@@ -1,0 +1,15 @@
+**/bin/
+**/obj/
+**/storage/
+**/.vs/
+**/.vscode/
+**/.idea/
+**/node_modules/
+**/*.user
+**/TestResults/
+.git/
+.env
+tests/
+docs/
+postman/
+scripts/

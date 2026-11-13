@@ -1,0 +1,124 @@
+﻿<!DOCTYPE html>
+<html lang="en-IN">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Book verified local professionals - plumbers, electricians, tutors, cleaners and more - with upfront prices and real reviews." />
+    <title>@ViewData["Title"] | Kaarigar</title>
+    <link rel="icon" href="~/favicon.svg" type="image/svg+xml" />
+    <link rel="preload" href="~/lib/fonts/bricolage-grotesque-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap-icons/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @await RenderSectionAsync("Head", required: false)
+</head>
+@{
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+    var action = ViewContext.RouteData.Values["action"]?.ToString();
+    string Active(string c, string? a = null) => controller == c && (a is null || action == a) ? "active" : "";
+    var signedIn = User.Identity?.IsAuthenticated == true;
+    var dashboard = User.IsInRole(AppRoles.Admin) ? "Admin" : User.IsInRole(AppRoles.Provider) ? "Provider" : "Customer";
+}
+<body>
+    <a class="visually-hidden-focusable position-absolute top-0 start-0 m-2 btn btn-primary" href="#main">Skip to content</a>
+    <header class="site-nav">
+        <nav class="navbar navbar-expand-xl">
+            <div class="container">
+                <a class="brand" asp-controller="Home" asp-action="Index" aria-label="Kaarigar home">
+                    <partial name="_Brand" />
+                </a>
+                <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="mainNav">
+                    <ul class="navbar-nav mx-auto mb-2 mb-xl-0">
+                        <li class="nav-item"><a class="nav-link @Active("Home", "Index")" asp-controller="Home" asp-action="Index">Home</a></li>
+                        <li class="nav-item"><a class="nav-link @Active("Services")" asp-controller="Services" asp-action="Index">Services</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/#how-it-works">How it works</a></li>
+                        <li class="nav-item"><a class="nav-link @Active("Home", "BecomeProvider")" asp-controller="Home" asp-action="BecomeProvider">Become a provider</a></li>
+                        <li class="nav-item"><a class="nav-link @Active("Home", "About")" asp-controller="Home" asp-action="About">About us</a></li>
+                        <li class="nav-item"><a class="nav-link @Active("Home", "Contact")" asp-controller="Home" asp-action="Contact">Contact</a></li>
+                    </ul>
+                    <div class="d-flex align-items-center gap-2 pb-3 pb-xl-0">
+                        @if (signedIn)
+                        {
+                            @await Component.InvokeAsync("NotificationBell")
+                            <a class="btn btn-navy" asp-controller="@dashboard" asp-action="Index"><i class="bi bi-grid-1x2 me-1" aria-hidden="true"></i>Dashboard</a>
+                            <div class="dropdown">
+                                <button class="btn p-0 border-0" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account menu">
+                                    <avatar name="@User.DisplayName()" src="@User.FindFirst("avatar")?.Value" size="sm" />
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><span class="dropdown-item-text small text-muted">Signed in as<br /><strong class="text-body">@User.DisplayName()</strong></span></li>
+                                    <li><hr class="dropdown-divider" /></li>
+                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="Profile">My profile</a></li>
+                                    <li>
+                                        <form asp-controller="Account" asp-action="Logout" method="post"><button class="dropdown-item" type="submit">Sign out</button></form>
+                                    </li>
+                                </ul>
+                            </div>
+                        }
+                        else
+                        {
+                            <a class="btn btn-outline-ink" asp-controller="Account" asp-action="Login">Log in</a>
+                            <a class="btn btn-primary" asp-controller="Account" asp-action="Register">Register</a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main id="main">
+        @RenderBody()
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <a class="brand mb-3" asp-controller="Home" asp-action="Index"><partial name="_Brand" /></a>
+                    <p class="small mt-3" style="max-width:36ch">Verified local professionals for repairs, cleaning, tutoring and beauty, booked by the hour with upfront prices.</p>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <h4>Popular services</h4>
+                    <ul>
+                        <li><a href="/Services?category=plumbing">Plumbing</a></li>
+                        <li><a href="/Services?category=electrical">Electrical</a></li>
+                        <li><a href="/Services?category=ac-repair">AC repair</a></li>
+                        <li><a href="/Services?category=home-cleaning">Home cleaning</a></li>
+                        <li><a href="/Services?category=tutoring">Tutoring</a></li>
+                    </ul>
+                </div>
+                <div class="col-6 col-lg-2">
+                    <h4>Company</h4>
+                    <ul>
+                        <li><a asp-controller="Home" asp-action="About">About us</a></li>
+                        <li><a href="/#how-it-works">How it works</a></li>
+                        <li><a asp-controller="Home" asp-action="Contact">Contact</a></li>
+                        <li><a asp-controller="Home" asp-action="Terms">Terms and cancellations</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-3">
+                    <h4>For professionals</h4>
+                    <ul>
+                        <li><a asp-controller="Home" asp-action="BecomeProvider">Become a provider</a></li>
+                        <li><a asp-controller="Account" asp-action="RegisterProvider">Create a professional account</a></li>
+                        <li><a asp-controller="Account" asp-action="Login">Professional sign in</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="legal">
+                <span>&copy; @Tz.LocalNow.Year Kaarigar. A university demonstration project; people and bookings shown are sample data.</span>
+                <span>Times shown in IST</span>
+            </div>
+        </div>
+    </footer>
+
+    <partial name="_Flash" />
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+    <script src="~/js/site.js" asp-append-version="true"></script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+@model (IReadOnlyList<BookingListItemVm> Items, BookingScope Scope)
+@{
+    var returnUrl = Context.Request.Path + Context.Request.QueryString;
+}
+<div class="table-responsive">
+    <table class="table table-clean align-middle">
+        <thead>
+            <tr>
+                <th scope="col">Booking</th>
+                @if (Model.Scope != BookingScope.Customer) { <th scope="col">Customer</th> }
+                @if (Model.Scope != BookingScope.Provider) { <th scope="col">Professional</th> }
+                <th scope="col">Service</th>
+                <th scope="col">Date and time</th>
+                @if (Model.Scope == BookingScope.Provider) { <th scope="col">Location</th> }
+                <th scope="col" class="text-end">@(Model.Scope == BookingScope.Provider ? "You earn" : "Price")</th>
+                <th scope="col">Status</th>
+                <th scope="col" class="text-end"><span class="visually-hidden">Actions</span></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var b in Model.Items)
+            {
+                <tr>
+                    <td>
+                        <a class="ref" asp-controller="Booking" asp-action="Details" asp-route-id="@b.Id">@b.Reference</a>
+                        @if (b.IsSampleData) { <span class="demo-badge ms-1">Demo</span> }
+                        <div class="cell-sub">Booked @Tz.Format(b.CreatedAtUtc, "d MMM")</div>
+                    </td>
+                    @if (Model.Scope != BookingScope.Customer)
+                    {
+                        <td><div class="cell-person"><avatar name="@b.CustomerName" size="sm" /><div><div class="fw-650">@b.CustomerName</div>@if (Model.Scope == BookingScope.Provider && b.CustomerPhone is not null && b.Status == BookingStatus.Confirmed) {<div class="cell-sub">@b.CustomerPhone</div>}</div></div></td>
+                    }
+                    @if (Model.Scope != BookingScope.Provider)
+                    {
+                        <td><div class="cell-person"><avatar name="@b.ProviderName" size="sm" /><div><a class="fw-650 text-body text-decoration-none" href="/providers/@b.ProviderId">@b.ProviderName</a><div class="cell-sub">@b.CategoryName</div></div></div></td>
+                    }
+                    <td>@b.ServiceTitle</td>
+                    <td class="text-nowrap tabular">@Tz.Format(b.StartUtc, "ddd, d MMM yyyy")<div class="cell-sub">@Tz.FormatTime(b.StartUtc) to @Tz.FormatTime(b.EndUtc)</div></td>
+                    @if (Model.Scope == BookingScope.Provider) { <td><span class="d-inline-block text-truncate" style="max-width:14rem" title="@b.Address">@b.Address</span><div class="cell-sub">@b.City</div></td> }
+                    <td class="text-end tabular fw-650">@((Model.Scope == BookingScope.Provider ? b.ProviderEarning : b.Price).ToMoney())</td>
+                    <td><status-badge status="@b.Status" /></td>
+                    <td class="text-end">
+                        <div class="d-inline-flex gap-1 flex-wrap justify-content-end">
+                            @if (b.CanRespond)
+                            {
+                                <form asp-controller="Booking" asp-action="Accept" asp-route-id="@b.Id" method="post"><input type="hidden" name="returnUrl" value="@returnUrl" /><button class="btn btn-soft-success btn-sm" type="submit">Accept</button></form>
+                                <button type="button" class="btn btn-soft-danger btn-sm" data-bs-toggle="modal" data-bs-target="#reasonModal"
+                                        data-action="@Url.Action("Reject", "Booking", new { id = b.Id })" data-title="Decline @b.Reference?"
+                                        data-body="The customer will be notified and the slot opens up again." data-confirm="Decline request" data-placeholder="Let the customer know why (optional)">Reject</button>
+                            }
+                            @if (b.CanComplete)
+                            {
+                                <form asp-controller="Booking" asp-action="Complete" asp-route-id="@b.Id" method="post" data-confirm="Mark @b.Reference as completed?"><input type="hidden" name="returnUrl" value="@returnUrl" /><button class="btn btn-soft-success btn-sm" type="submit">Mark completed</button></form>
+                            }
+                            @if (b.CanReschedule)
+                            {
+                                <a class="btn btn-outline-ink btn-sm" asp-controller="Booking" asp-action="Reschedule" asp-route-id="@b.Id">Reschedule</a>
+                            }
+                            @if (b.CanCancel)
+                            {
+                                <button type="button" class="btn btn-soft-danger btn-sm" data-bs-toggle="modal" data-bs-target="#reasonModal"
+                                        data-action="@Url.Action("Cancel", "Booking", new { id = b.Id })" data-title="Cancel @b.Reference?"
+                                        data-body="@(Model.Scope == BookingScope.Admin ? "Both the customer and the professional will be notified." : "Free cancellation until 2 hours before the appointment. The professional will be notified.")"
+                                        data-confirm="Cancel booking" data-placeholder="Reason (optional)" data-reason-required="@(Model.Scope == BookingScope.Admin ? "true" : "false")">Cancel</button>
+                            }
+                            @if (b.CanReview)
+                            {
+                                <a class="btn btn-primary btn-sm" asp-controller="Booking" asp-action="Review" asp-route-id="@b.Id">Leave a review</a>
+                            }
+                            <a class="btn btn-link btn-sm" asp-controller="Booking" asp-action="Details" asp-route-id="@b.Id">Details</a>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

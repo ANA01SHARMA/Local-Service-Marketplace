@@ -1,0 +1,39 @@
+@model PagedResult<BookingListItemVm>
+@{
+    var query = (BookingQuery)ViewData["Query"]!;
+    var isRequests = ViewContext.RouteData.Values["action"]?.ToString() == "Requests";
+}
+<partial name="_StatusBanner" />
+@if (!isRequests)
+{
+    <nav class="tabs-underline scroll-x" data-scroll-x aria-label="Filter jobs">
+        <a class="@(query.Status == "upcoming" ? "active" : "")" asp-action="Jobs" asp-route-status="upcoming">Upcoming</a>
+        <a class="@(query.Status == "confirmed" ? "active" : "")" asp-action="Jobs" asp-route-status="confirmed">All confirmed</a>
+        <a class="@(query.Status == "completed" ? "active" : "")" asp-action="Jobs" asp-route-status="completed">Completed</a>
+        <a class="@(query.Status == "history" ? "active" : "")" asp-action="Jobs" asp-route-status="history">History</a>
+        <a asp-action="Requests">Pending requests</a>
+    </nav>
+}
+else
+{
+    <p class="text-muted">Accept a request to confirm it, or decline it with a short reason. Requests that aren't answered before the appointment time expire automatically.</p>
+}
+<form method="get" class="d-flex flex-wrap gap-2 mb-3">
+    <input type="hidden" name="status" value="@query.Status" />
+    <label class="visually-hidden" for="jq">Search</label>
+    <input id="jq" class="form-control" style="max-width:300px" type="search" name="q" value="@query.Q" placeholder="Search customer, service or reference" />
+    <label class="visually-hidden" for="jf">From</label><input id="jf" class="form-control" style="max-width:170px" type="date" name="from" value="@query.From?.ToString("yyyy-MM-dd")" />
+    <label class="visually-hidden" for="jt">To</label><input id="jt" class="form-control" style="max-width:170px" type="date" name="to" value="@query.To?.ToString("yyyy-MM-dd")" />
+    <button class="btn btn-outline-ink" type="submit">Filter</button>
+</form>
+<div class="surface">
+    @if (Model.Items.Count == 0)
+    {
+        <div class="empty"><i class="bi @(isRequests ? "bi-inbox" : "bi-calendar2") " aria-hidden="true"></i><h3>@(isRequests ? "No pending requests" : "No jobs here")</h3><p>@(isRequests ? "New booking requests from customers will appear here." : "Jobs matching this filter will appear here.")</p></div>
+    }
+    else
+    {
+        <partial name="_BookingTable" model="(Model.Items, BookingScope.Provider)" />
+    }
+</div>
+<div class="d-flex justify-content-between align-items-center mt-3"><span class="small text-muted">@Model.TotalCount result@(Model.TotalCount == 1 ? "" : "s")</span><pager page="@Model.Page" total-pages="@Model.TotalPages" /></div>

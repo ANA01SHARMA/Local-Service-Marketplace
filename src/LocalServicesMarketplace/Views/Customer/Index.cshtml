@@ -1,0 +1,73 @@
+@model CustomerDashboardViewModel
+@{ var first = Model.FullName.Split(' ')[0]; }
+<p class="text-muted mb-4">Hi @first, here's what's happening with your bookings.</p>
+
+<div class="kpis kpis-5 mb-4">
+    <a class="kpi kpi-lead" asp-action="Bookings"><div class="label"><i class="bi bi-calendar3" aria-hidden="true"></i>Total bookings</div><div class="value">@Model.TotalBookings</div><div class="sub">@Model.TotalSpent.ToMoney() spent on completed jobs</div></a>
+    <a class="kpi" asp-action="Bookings" asp-route-status="pending"><div class="label"><i class="bi bi-hourglass-split" aria-hidden="true"></i>Pending</div><div class="value">@Model.PendingBookings</div><div class="sub">waiting for the professional</div></a>
+    <a class="kpi" asp-action="Bookings" asp-route-status="confirmed"><div class="label"><i class="bi bi-calendar-check" aria-hidden="true"></i>Confirmed</div><div class="value">@Model.ConfirmedBookings</div><div class="sub">scheduled</div></a>
+    <a class="kpi" asp-action="Bookings" asp-route-status="completed"><div class="label"><i class="bi bi-check2-circle" aria-hidden="true"></i>Completed</div><div class="value">@Model.CompletedBookings</div><div class="sub">@(Model.AwaitingReview > 0 ? $"{Model.AwaitingReview} awaiting your review" : "all reviewed")</div></a>
+    <a class="kpi" asp-action="Bookings" asp-route-status="cancelled"><div class="label"><i class="bi bi-slash-circle" aria-hidden="true"></i>Cancelled or declined</div><div class="value">@Model.CancelledBookings</div><div class="sub">no charge</div></a>
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-8 d-grid gap-4 align-content-start">
+        <div class="surface">
+            <div class="surface-head"><h2>Upcoming</h2><a class="small fw-650" asp-action="Bookings" asp-route-status="upcoming">See all</a></div>
+            @if (Model.Upcoming.Count == 0)
+            {
+                <div class="empty"><i class="bi bi-calendar2-plus" aria-hidden="true"></i><h3>Nothing scheduled</h3><p>Book a verified professional and the appointment will show up here.</p><a class="btn btn-primary" asp-controller="Services" asp-action="Index">Find a professional</a></div>
+            }
+            else
+            {
+                <partial name="_BookingTable" model="(Model.Upcoming, BookingScope.Customer)" />
+            }
+        </div>
+        <div class="surface">
+            <div class="surface-head"><h2>Recent booking activity</h2><a class="small fw-650" asp-action="Bookings" asp-route-status="history">Booking history</a></div>
+            @if (Model.RecentActivity.Count == 0)
+            {
+                <div class="empty"><i class="bi bi-clock-history" aria-hidden="true"></i><h3>No activity yet</h3><p>Your requests, confirmations and completed jobs will be listed here.</p></div>
+            }
+            else
+            {
+                <ul class="activity px-4 py-2">
+                    @foreach (var b in Model.RecentActivity)
+                    {
+                        <li>
+                            <i class="bi @b.Status.Icon()" aria-hidden="true"></i>
+                            <div class="flex-grow-1 min-w-0">
+                                <a class="fw-650 text-body text-decoration-none" asp-controller="Booking" asp-action="Details" asp-route-id="@b.Id">@b.ServiceTitle</a> with @b.ProviderName
+                                <div class="cell-sub">@b.Reference, for @Tz.Format(b.StartUtc, "d MMM, h:mm tt")</div>
+                            </div>
+                            <status-badge status="@b.Status" />
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+    <div class="col-xl-4 d-grid gap-4 align-content-start">
+        @if (Model.AwaitingReview > 0)
+        {
+            <div class="surface surface-pad" style="border-color:#FDE68A;background:#FFFBEB">
+                <h2 class="h5"><i class="bi bi-star me-1" aria-hidden="true"></i>Rate your last jobs</h2>
+                <p class="small mb-3">@Model.AwaitingReview completed booking@(Model.AwaitingReview == 1 ? " is" : "s are") waiting for your review. It helps your neighbours choose.</p>
+                <a class="btn btn-navy btn-sm" asp-action="Reviews">Write reviews</a>
+            </div>
+        }
+        <div class="surface surface-pad">
+            <h2 class="h5 mb-3">Book again</h2>
+            <div class="d-grid gap-2">
+                @foreach (var c in Model.Categories)
+                {
+                    <a class="d-flex align-items-center gap-3 text-decoration-none text-body p-2 rounded-3 border" href="/Services?category=@c.Slug">
+                        <span class="d-grid place-items-center rounded-3" style="width:44px;height:44px;background:var(--blue-soft)">@if (c.ImagePath is not null) { <img src="@c.ImagePath" alt="" width="36" height="28" style="margin:auto" /> } else { <i class="bi @c.Icon m-auto"></i> }</span>
+                        <span class="flex-grow-1"><strong class="d-block small">@c.Name</strong><span class="small text-muted">@(c.StartingPrice.HasValue ? $"From {c.StartingPrice.ToMoney()}" : "")</span></span>
+                        <i class="bi bi-chevron-right text-muted" aria-hidden="true"></i>
+                    </a>
+                }
+            </div>
+        </div>
+    </div>
+</div>

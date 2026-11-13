@@ -1,0 +1,53 @@
+@model ComplaintInputModel
+@{
+    var complaints = (IReadOnlyList<ComplaintListItemVm>)ViewBag.Complaints;
+    var bookingOptions = (IReadOnlyList<(int Id, string Label)>)ViewBag.BookingOptions;
+}
+<div class="row g-4">
+    <div class="col-xl-5">
+        <form asp-action="Index" method="post" class="surface" novalidate>
+            <div class="surface-head"><h2>Report a problem</h2></div>
+            <div class="surface-pad d-grid gap-3">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-0"></div>
+                <div>
+                    <label asp-for="BookingId" class="form-label"></label>
+                    <select asp-for="BookingId" class="form-select">
+                        <option value="">Not about a specific booking</option>
+                        @foreach (var b in bookingOptions) { <option value="@b.Id" selected="@(Model.BookingId == b.Id)">@b.Label</option> }
+                    </select>
+                </div>
+                <div><label asp-for="Subject" class="form-label"></label><input asp-for="Subject" class="form-control" placeholder="e.g. Professional didn't arrive" /><span asp-validation-for="Subject"></span></div>
+                <div><label asp-for="Description" class="form-label"></label><textarea asp-for="Description" class="form-control" rows="5" placeholder="Tell us what happened and what you'd like us to do."></textarea><span asp-validation-for="Description"></span></div>
+                <button class="btn btn-primary" type="submit">Send to support</button>
+                <p class="small text-muted mb-0">An admin reviews every complaint. You'll get a notification when they reply.</p>
+            </div>
+        </form>
+    </div>
+    <div class="col-xl-7">
+        <div class="surface">
+            <div class="surface-head"><h2>Your complaints</h2></div>
+            @if (complaints.Count == 0)
+            {
+                <div class="empty"><i class="bi bi-emoji-smile" aria-hidden="true"></i><h3>No complaints</h3><p>Anything you report will be tracked here with the team's response.</p></div>
+            }
+            <div class="px-4">
+                @foreach (var c in complaints)
+                {
+                    <article class="review">
+                        <div class="d-flex justify-content-between gap-2 flex-wrap">
+                            <strong>#@c.Id @c.Subject</strong>
+                            <span class="badge-status @c.Status.BadgeClass()">@c.Status.Label()</span>
+                        </div>
+                        <div class="small text-muted">Opened @Tz.Format(c.CreatedAtUtc, "d MMM yyyy")@(c.BookingId.HasValue ? $", booking {Booking.FormatReference(c.BookingId.Value)}" : "")</div>
+                        <p class="mt-2 mb-2 small">@c.Description</p>
+                        @if (!string.IsNullOrWhiteSpace(c.AdminResponse))
+                        {
+                            <div class="p-3 rounded-3 small" style="background:var(--blue-soft)"><strong class="d-block mb-1"><i class="bi bi-reply me-1" aria-hidden="true"></i>Kaarigar support</strong>@c.AdminResponse</div>
+                        }
+                    </article>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

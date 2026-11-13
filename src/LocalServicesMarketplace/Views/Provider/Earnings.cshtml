@@ -1,0 +1,49 @@
+@model EarningsViewModel
+<div class="kpis mb-4">
+    <div class="kpi kpi-lead"><div class="label">Total earned</div><div class="value">@Model.TotalEarnings.ToMoney()</div><div class="sub">from @Model.CompletedJobs completed jobs</div></div>
+    <div class="kpi"><div class="label">This month</div><div class="value">@Model.ThisMonth.ToMoney()</div><div class="sub">@Tz.LocalNow.ToString("MMMM yyyy")</div></div>
+    <div class="kpi"><div class="label">Upcoming confirmed work</div><div class="value">@Model.UpcomingValue.ToMoney()</div><div class="sub">earned once completed</div></div>
+    <div class="kpi"><div class="label">Platform fees paid</div><div class="value">@Model.TotalFees.ToMoney()</div><div class="sub">@((Model.CommissionRate * 100).ToString("0"))% of each job</div></div>
+</div>
+<div class="row g-4">
+    <div class="col-xl-7">
+        <div class="surface surface-pad">
+            <h2 class="h5 mb-0">Monthly earnings</h2>
+            <p class="small text-muted">Last 12 months, after platform fees</p>
+            <div class="chart-box">
+                <canvas data-chart="bar" data-format="money" data-series="Earned"
+                        data-labels='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Months.Select(m => m.Label)))'
+                        data-values='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Months.Select(m => m.Net)))'
+                        role="img" aria-label="Bar chart of monthly earnings over the last 12 months. Values are in the table."></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-5">
+        <div class="surface">
+            <div class="surface-head"><h2>By month</h2></div>
+            <div class="table-responsive" style="max-height:340px">
+                <table class="table table-clean">
+                    <thead><tr><th>Month</th><th class="text-end">Jobs</th><th class="text-end">Gross</th><th class="text-end">You earned</th></tr></thead>
+                    <tbody>
+                        @foreach (var m in Model.Months.Reverse())
+                        {
+                            <tr><td>@m.Label</td><td class="text-end tabular">@m.Jobs</td><td class="text-end tabular">@m.Gross.ToMoney()</td><td class="text-end tabular fw-650">@m.Net.ToMoney()</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="surface mt-4">
+    <div class="surface-head"><h2>Recently completed jobs</h2><a class="small fw-650" asp-action="Jobs" asp-route-status="completed">All completed jobs</a></div>
+    @if (Model.RecentPayouts.Count == 0)
+    {
+        <div class="empty"><i class="bi bi-wallet2" aria-hidden="true"></i><h3>No completed jobs yet</h3><p>Earnings appear here when you mark confirmed jobs as completed.</p></div>
+    }
+    else
+    {
+        <partial name="_BookingTable" model="(Model.RecentPayouts, BookingScope.Provider)" />
+    }
+</div>
+@section Scripts { <script src="~/lib/chartjs/chart.umd.min.js"></script><script src="~/js/charts.js" asp-append-version="true"></script> }

@@ -1,0 +1,43 @@
+@model PagedResult<AdminServiceListItemVm>
+@{ var categories = (IReadOnlyList<Category>)ViewBag.Categories; int? categoryId = ViewBag.CategoryId; var returnUrl = Context.Request.Path + Context.Request.QueryString; }
+<form method="get" class="d-flex flex-wrap gap-2 mb-3">
+    <label class="visually-hidden" for="sq">Search</label>
+    <input id="sq" class="form-control" style="max-width:300px" type="search" name="q" value="@ViewBag.Q" placeholder="Service or provider name" />
+    <label class="visually-hidden" for="sc">Category</label>
+    <select id="sc" name="categoryId" class="form-select" style="max-width:200px" data-autosubmit>
+        <option value="">All categories</option>
+        @foreach (var c in categories) { <option value="@c.Id" selected="@(categoryId == c.Id)">@c.Name</option> }
+    </select>
+    <button class="btn btn-outline-ink" type="submit">Filter</button>
+</form>
+<div class="surface">
+    <div class="table-responsive">
+        <table class="table table-clean">
+            <thead><tr><th>Service</th><th>Provider</th><th>Category</th><th class="text-end">Price</th><th class="text-end">Bookings</th><th>Status</th><th class="text-end"><span class="visually-hidden">Actions</span></th></tr></thead>
+            <tbody>
+                @foreach (var s in Model.Items)
+                {
+                    <tr>
+                        <td class="fw-650">@s.Title</td>
+                        <td><a asp-action="ReviewProvider" asp-route-id="@s.ProviderId" class="text-body">@s.ProviderName</a></td>
+                        <td>@s.CategoryName</td>
+                        <td class="text-end tabular">@s.Price.ToMoney()<div class="cell-sub">@s.PriceUnit.Label()</div></td>
+                        <td class="text-end tabular">@s.BookingCount</td>
+                        <td>@if (s.IsActive) { <span class="badge-status status-completed">Visible</span> } else { <span class="badge-status status-cancelled">Hidden</span> }</td>
+                        <td class="text-end">
+                            <div class="d-inline-flex gap-1">
+                                <form asp-action="ToggleService" asp-route-id="@s.Id" method="post"><input type="hidden" name="active" value="@(!s.IsActive)" /><input type="hidden" name="returnUrl" value="@returnUrl" /><button class="btn btn-outline-ink btn-sm" type="submit">@(s.IsActive ? "Hide" : "Show")</button></form>
+                                @if (s.BookingCount == 0)
+                                {
+                                    <form asp-action="DeleteService" asp-route-id="@s.Id" method="post" data-confirm="Delete &quot;@s.Title&quot; permanently?"><input type="hidden" name="returnUrl" value="@returnUrl" /><button class="btn btn-soft-danger btn-sm" type="submit" aria-label="Delete"><i class="bi bi-trash" aria-hidden="true"></i></button></form>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @if (Model.Items.Count == 0) { <div class="empty"><i class="bi bi-tools" aria-hidden="true"></i><h3>No services match</h3><p>Try a different search.</p></div> }
+</div>
+<div class="d-flex justify-content-between align-items-center mt-3"><span class="small text-muted">@Model.TotalCount service@(Model.TotalCount == 1 ? "" : "s")</span><pager page="@Model.Page" total-pages="@Model.TotalPages" /></div>

@@ -1,0 +1,154 @@
+@model BookingDetailsViewModel
+@{
+    Layout = "_DashboardLayout";
+    var b = Model.Booking;
+    var steps = new List<(string Label, DateTime? When, bool On, string Icon)>
+    {
+        ("Requested", b.CreatedAtUtc, true, "bi-send"),
+        (b.Status == BookingStatus.Rejected ? "Declined by professional" : "Confirmed by professional", b.ConfirmedAtUtc, b.ConfirmedAtUtc.HasValue || b.Status is BookingStatus.Completed or BookingStatus.Rejected, b.Status == BookingStatus.Rejected ? "bi-x-lg" : "bi-check2"),
+        (b.Status == BookingStatus.Cancelled ? $"Cancelled by {b.CancelledBy?.ToLowerInvariant() ?? "user"}" : "Job completed", b.Status == BookingStatus.Cancelled ? b.CancelledAtUtc : b.CompletedAtUtc, b.Status is BookingStatus.Completed or BookingStatus.Cancelled, b.Status == BookingStatus.Cancelled ? "bi-slash-circle" : "bi-flag"),
+        ("Reviewed", b.Review?.CreatedAtUtc, b.Review is not null, "bi-star")
+    };
+    if (b.Status == BookingStatus.Rejected) steps.RemoveRange(2, 2);
+    if (b.Status == BookingStatus.Cancelled) steps.RemoveAt(3);
+    var returnUrl = Context.Request.Path.ToString();
+}
+<div class="d-flex flex-wrap align-items-center gap-3 mb-4">
+    <span class="mono-ref fs-5">@b.Reference</span>
+    <status-badge status="@b.Status" />
+    @if (b.IsSampleData) { <span class="demo-badge">Demo data</span> }
+    <div class="ms-auto d-flex flex-wrap gap-2">
+        @if (Model.CanRespond)
+        {
+            <form asp-action="Accept" asp-route-id="@b.Id" method="post"><input type="hidden" name="returnUrl" value="@returnUrl" /><button class="btn btn-soft-success" type="submit"><i class="bi bi-check2 me-1" aria-hidden="true"></i>Accept request</button></form>
+            <button type="button" class="btn btn-soft-danger" data-bs-toggle="modal" data-bs-target="#reasonModal" data-action="@Url.Action("Reject", new { id = b.Id })"
+                    data-title="Decline @b.Reference?" data-body="The customer will be notified and the slot opens up again." data-confirm="Decline request" data-placeholder="Let the customer know why (optional)">Reject</button>
+        }
+        @if (Model.CanComplete)
+        {
+            <form asp-action="Complete" asp-route-id="@b.Id" method="post" data-confirm="Mark this job as completed?"><input type="hidden" name="returnUrl" value="@returnUrl" /><button class="btn btn-soft-success" type="submit"><i class="bi bi-flag me-1" aria-hidden="true"></i>Mark as completed</button></form>
+        }
+        @if (Model.CanReschedule) { <a class="btn btn-outline-ink" asp-action="Reschedule" asp-route-id="@b.Id"><i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>Reschedule</a> }
+        @if (Model.CanCancel)
+        {
+            <button type="button" class="btn btn-soft-danger" data-bs-toggle="modal" data-bs-target="#reasonModal" data-action="@Url.Action("Cancel", new { id = b.Id })"
+                    data-title="Cancel @b.Reference?" data-body="@(Model.ViewerScope == BookingScope.Admin ? "Both the customer and the professional will be notified." : "The professional will be notified and the slot released.")"
+                    data-confirm="Cancel booking" data-placeholder="Reason" data-reason-required="@(Model.ViewerScope == BookingScope.Admin ? "true" : "false")">Cancel booking</button>
+        }
+        @if (Model.CanReview) { <a class="btn btn-primary" asp-action="Review" asp-route-id="@b.Id"><i class="bi bi-star me-1" aria-hidden="true"></i>Leave a review</a> }
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.CancelBlockedReason))
+{
+    <div class="alert alert-info"><i class="bi bi-info-circle me-1" aria-hidden="true"></i>@Model.CancelBlockedReason Contact support if you can't make it.</div>
+}
+@if (!string.IsNullOrEmpty(b.StatusReason))
+{
+    <div class="alert @(b.Status is BookingStatus.Rejected or BookingStatus.Cancelled ? "alert-danger" : "alert-info")"><strong>Note:</strong> @b.StatusReason</div>
+}
+
+<div class="row g-4">
+    <div class="col-xl-8 d-grid gap-4 align-content-start">
+        <div class="surface">
+            <div class="surface-head"><h2>Appointment</h2></div>
+            <div class="surface-pad">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="small-label">When</div>
+                        <div class="fs-5 fw-650">@Tz.Format(b.ScheduledStartUtc, "dddd, d MMMM yyyy")</div>
+                        <div>@Tz.FormatTime(b.ScheduledStartUtc) to @Tz.FormatTime(b.ScheduledEndUtc) IST</div>
+                        @if (b.RescheduleCount > 0) { <div class="small text-muted">Rescheduled @b.RescheduleCount time@(b.RescheduleCount == 1 ? "" : "s")</div> }
+                    </div>
+                    <div class="col-md-6">
+                        <div class="small-label">Where</div>
+                        <div class="fw-650">@b.Address</div>
+                        <div>@b.City</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="small-label">Service</div>
+                        <div class="fw-650">@b.Service.Title</div>
+                        <div class="small text-muted">@b.Provider.Category.Name, about @b.Service.DurationMinutes min</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="small-label">Notes from customer</div>
+                        <div>@(string.IsNullOrWhiteSpace(b.Notes) ? "None" : b.Notes)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (b.Review is not null)
+        {
+            <div class="surface surface-pad">
+                <h2 class="h5">Review</h2>
+                <stars value="@b.Review.Rating" />
+                <p class="mt-2 mb-1">@(b.Review.Comment ?? "No comment.")</p>
+                <span class="small text-muted">@Tz.Format(b.Review.CreatedAtUtc, "d MMM yyyy")</span>
+            </div>
+        }
+
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="surface surface-pad h-100">
+                    <div class="small-label mb-2">Professional</div>
+                    <div class="d-flex gap-3 align-items-center">
+                        <avatar name="@b.Provider.User.FullName" src="@b.Provider.User.ProfileImagePath" />
+                        <div>
+                            <a class="fw-650 text-body" href="/providers/@b.ProviderId">@b.Provider.User.FullName</a>
+                            @if (b.Status == BookingStatus.Confirmed && Model.ViewerScope != BookingScope.Provider) { <div class="small">@b.Provider.User.PhoneNumber</div> }
+                            else { <div class="small text-muted">@b.Provider.Category.Name</div> }
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="surface surface-pad h-100">
+                    <div class="small-label mb-2">Customer</div>
+                    <div class="d-flex gap-3 align-items-center">
+                        <avatar name="@b.Customer.FullName" src="@b.Customer.ProfileImagePath" />
+                        <div>
+                            <div class="fw-650">@b.Customer.FullName</div>
+                            @if (b.Status == BookingStatus.Confirmed || Model.ViewerScope != BookingScope.Provider) { <div class="small">@b.Customer.PhoneNumber</div> }
+                            else { <div class="small text-muted">Phone shared once you accept</div> }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-4 d-grid gap-4 align-content-start">
+        <div class="surface surface-pad">
+            <h2 class="h5 mb-3">Payment summary</h2>
+            <ul class="summary-list">
+                <li><span>Service price</span><strong>@b.Price.ToMoney()</strong></li>
+                @if (Model.ViewerScope != BookingScope.Customer)
+                {
+                    <li><span>Platform fee</span><strong>−@b.PlatformFee.ToMoney()</strong></li>
+                    <li class="pt-2 border-top"><span class="text-body fw-650">Professional earns</span><strong>@b.ProviderEarning.ToMoney()</strong></li>
+                }
+                else
+                {
+                    <li class="pt-2 border-top"><span class="text-body fw-650">You pay after the job</span><strong class="fs-5">@b.Price.ToMoney()</strong></li>
+                }
+            </ul>
+        </div>
+        <div class="surface surface-pad">
+            <h2 class="h5 mb-3">Progress</h2>
+            <ol class="timeline">
+                @foreach (var s in steps)
+                {
+                    <li>
+                        <span class="dot @(s.On ? "on" : "")"><i class="bi @s.Icon" aria-hidden="true"></i></span>
+                        <div><div class="fw-650 small">@s.Label</div><div class="when">@(s.When.HasValue ? Tz.Format(s.When.Value) : s.On ? "" : "Not yet")</div></div>
+                    </li>
+                }
+            </ol>
+        </div>
+        @if (Model.ViewerScope != BookingScope.Admin)
+        {
+            <a class="btn btn-outline-ink" asp-controller="Support" asp-action="Index" asp-route-bookingId="@b.Id"><i class="bi bi-life-preserver me-1" aria-hidden="true"></i>Report a problem with this booking</a>
+        }
+    </div>
+</div>

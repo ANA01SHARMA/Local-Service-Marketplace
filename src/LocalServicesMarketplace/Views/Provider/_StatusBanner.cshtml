@@ -1,0 +1,13 @@
+@{ var status = (VerificationStatus)ViewBag.ProviderStatus; }
+@if (status != VerificationStatus.Approved)
+{
+    <div class="alert @(status == VerificationStatus.Rejected ? "alert-danger" : "alert-warning") d-flex gap-2 align-items-start">
+        <i class="bi bi-patch-exclamation" aria-hidden="true"></i>
+        <div>
+            @if (status == VerificationStatus.Pending) { <span><strong>Under review.</strong> An admin is checking your documents. Customers can't book you until you're approved.</span> }
+            else if (status == VerificationStatus.Rejected) { <span><strong>Verification needs changes.</strong> Fix the issues and submit again.</span> }
+            else { <span><strong>You're not visible to customers yet.</strong> Finish your profile and submit it for verification.</span> }
+            <a class="fw-650 ms-1" asp-controller="Provider" asp-action="Verification">Go to verification</a>
+        </div>
+    </div>
+}

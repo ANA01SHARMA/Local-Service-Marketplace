@@ -1,0 +1,29 @@
+@model RescheduleViewModel
+@{ Layout = "_DashboardLayout"; var b = Model.Booking!; }
+<div class="row g-4">
+    <div class="col-xl-8">
+        <form asp-action="Reschedule" method="post" class="surface surface-pad" novalidate>
+            <input type="hidden" asp-for="BookingId" />
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <h2 class="h4">Pick a new time with @b.Provider.User.FullName</h2>
+            <p class="text-muted">Currently booked for <strong>@Tz.Format(b.ScheduledStartUtc)</strong>. The professional will need to accept the new time.</p>
+            <partial name="_SlotPicker" model="(Model.SlotDays, nameof(Model.NewTimeSlotId), Model.NewTimeSlotId)" />
+            <span asp-validation-for="NewTimeSlotId"></span>
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">Move booking</button>
+                <a class="btn btn-outline-ink" asp-action="Details" asp-route-id="@b.Id">Keep current time</a>
+            </div>
+        </form>
+    </div>
+    <div class="col-xl-4">
+        <div class="surface surface-pad">
+            <div class="small-label">Booking</div>
+            <div class="mono-ref">@b.Reference</div>
+            <div class="mt-2">@b.Service.Title</div>
+            <div class="small text-muted">@b.Address, @b.City</div>
+            <div class="divider my-3"></div>
+            <p class="small text-muted mb-0">You can reschedule each booking up to 2 times, and not within 2 hours of the appointment.</p>
+        </div>
+    </div>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

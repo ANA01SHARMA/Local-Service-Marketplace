@@ -1,0 +1,94 @@
+@model AvailabilityViewModel
+@{
+    var input = Model.AddSlots;
+    var from = Model.From;
+    var days = new[] { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday };
+}
+<partial name="_StatusBanner" />
+<div class="row g-4">
+    <div class="col-xl-4 order-xl-2">
+        <form asp-action="AddSlots" method="post" class="surface" style="position:sticky;top:84px">
+            <div class="surface-head"><h2>Add available times</h2></div>
+            <div class="surface-pad d-grid gap-3">
+                <div class="row g-2">
+                    <div class="col-6"><label class="form-label" for="AddSlots_FromDate">From</label><input class="form-control" type="date" id="AddSlots_FromDate" name="AddSlots.FromDate" value="@input.FromDate?.ToString("yyyy-MM-dd")" min="@Tz.LocalToday.ToString("yyyy-MM-dd")" required /></div>
+                    <div class="col-6"><label class="form-label" for="AddSlots_ToDate">To</label><input class="form-control" type="date" id="AddSlots_ToDate" name="AddSlots.ToDate" value="@input.ToDate?.ToString("yyyy-MM-dd")" min="@Tz.LocalToday.ToString("yyyy-MM-dd")" required /></div>
+                </div>
+                <fieldset>
+                    <legend class="form-label">Working days</legend>
+                    <div class="weekday-picks">
+                        @foreach (var d in days)
+                        {
+                            <input type="checkbox" id="wd-@d" name="AddSlots.Days" value="@d" @(input.Days.Contains(d) ? "checked" : "") />
+                            <label for="wd-@d">@d.ToString()[..3]</label>
+                        }
+                    </div>
+                </fieldset>
+                <div class="row g-2">
+                    <div class="col-6"><label class="form-label" for="AddSlots_StartTime">Start</label><input class="form-control" type="time" id="AddSlots_StartTime" name="AddSlots.StartTime" value="@input.StartTime?.ToString("HH:mm")" step="900" required /></div>
+                    <div class="col-6"><label class="form-label" for="AddSlots_EndTime">End</label><input class="form-control" type="time" id="AddSlots_EndTime" name="AddSlots.EndTime" value="@input.EndTime?.ToString("HH:mm")" step="900" required /></div>
+                </div>
+                <div>
+                    <label class="form-label" for="AddSlots_SlotMinutes">Slot length</label>
+                    <select class="form-select" id="AddSlots_SlotMinutes" name="AddSlots.SlotMinutes">
+                        @foreach (var m in new[] { 30, 45, 60, 90, 120, 180, 240 }) { <option value="@m" selected="@(input.SlotMinutes == m)">@(m < 60 ? $"{m} minutes" : m % 60 == 0 ? $"{m / 60} hour{(m == 60 ? "" : "s")}" : $"{m / 60} h {m % 60} min")</option> }
+                    </select>
+                </div>
+                <button class="btn btn-primary" type="submit">Add slots</button>
+                <p class="small text-muted mb-0">Slots that overlap existing ones or are in the past are skipped. Times are in IST.</p>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-xl-8 order-xl-1">
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+            <a class="btn btn-outline-ink btn-sm" asp-action="Availability" asp-route-from="@from.AddDays(-14).ToString("yyyy-MM-dd")" aria-label="Previous two weeks"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>
+            <strong>@from.ToString("d MMM") to @from.AddDays(13).ToString("d MMM yyyy")</strong>
+            <a class="btn btn-outline-ink btn-sm" asp-action="Availability" asp-route-from="@from.AddDays(14).ToString("yyyy-MM-dd")" aria-label="Next two weeks"><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+            @if (from != Tz.LocalToday) { <a class="btn btn-link btn-sm" asp-action="Availability">Today</a> }
+            <span class="ms-auto small text-muted"><span class="fw-650 text-body">@Model.TotalFree</span> free, <span class="fw-650 text-body">@Model.TotalBooked</span> booked</span>
+        </div>
+
+        @if (Model.Days.Count == 0)
+        {
+            <div class="surface empty"><i class="bi bi-calendar-plus" aria-hidden="true"></i><h3>No time slots in these two weeks</h3><p>Use the form to publish the days and hours you can work. Customers can only book published slots.</p></div>
+        }
+        @foreach (var day in Model.Days)
+        {
+            var futureFree = day.Slots.Count(s => s.BookingId is null && !s.IsPast);
+            <div class="availability-day">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <strong>@day.Date.ToString("dddd, d MMMM") @if (day.Date == Tz.LocalToday) { <span class="badge-status status-confirmed ms-1">Today</span> }</strong>
+                    @if (futureFree > 0)
+                    {
+                        <form asp-action="ClearDay" method="post" data-confirm="Remove all @futureFree free slots on @day.Date.ToString("d MMM")? Booked slots stay.">
+                            <input type="hidden" name="date" value="@day.Date.ToString("yyyy-MM-dd")" /><input type="hidden" name="from" value="@from.ToString("yyyy-MM-dd")" />
+                            <button class="btn btn-link btn-sm text-danger p-0" type="submit">Clear free slots</button>
+                        </form>
+                    }
+                </div>
+                <div>
+                    @foreach (var s in day.Slots)
+                    {
+                        if (s.BookingId is not null)
+                        {
+                            <a class="slot-pill booked text-decoration-none @(s.IsPast ? "past" : "")" asp-controller="Booking" asp-action="Details" asp-route-id="@s.BookingId" title="@s.BookingStatus: @s.CustomerName">
+                                <i class="bi @(s.BookingStatus?.Icon() ?? "bi-person")" aria-hidden="true"></i>@Tz.FormatTime(s.StartUtc)<span class="fw-normal">@s.CustomerName?.Split(' ')[0]</span>
+                            </a>
+                        }
+                        else
+                        {
+                            <span class="slot-pill @(s.IsPast ? "past" : "")">
+                                @Tz.FormatTime(s.StartUtc)
+                                @if (!s.IsPast)
+                                {
+                                    <form asp-action="RemoveSlot" asp-route-id="@s.Id" method="post"><input type="hidden" name="from" value="@from.ToString("yyyy-MM-dd")" /><button class="x" type="submit" aria-label="Remove @Tz.FormatTime(s.StartUtc) slot"><i class="bi bi-x-lg" aria-hidden="true"></i></button></form>
+                                }
+                            </span>
+                        }
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>

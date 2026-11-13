@@ -1,0 +1,22 @@
+@* One modal reused for cancel / reject / block actions. site.js fills in the action URL and text. *@
+<div class="modal fade" id="reasonModal" tabindex="-1" aria-labelledby="reasonModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="post" class="modal-content" style="border-radius:16px">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="returnUrl" value="" />
+            <div class="modal-header border-0 pb-0">
+                <h2 class="modal-title fs-5" id="reasonModalTitle">Are you sure?</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3" data-modal-body></p>
+                <label class="form-label" for="reasonText">Reason</label>
+                <textarea id="reasonText" name="reason" class="form-control" rows="3" maxlength="500"></textarea>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-ink" data-bs-dismiss="modal">Keep it</button>
+                <button type="submit" class="btn btn-danger">Confirm</button>
+            </div>
+        </form>
+    </div>
+</div>

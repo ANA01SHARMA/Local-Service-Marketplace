@@ -1,0 +1,40 @@
+@model IReadOnlyList<ReviewVm>
+@{ var awaiting = (IReadOnlyList<BookingListItemVm>)ViewBag.AwaitingReview; }
+@if (awaiting.Count > 0)
+{
+    <div class="surface mb-4">
+        <div class="surface-head"><h2>Waiting for your review</h2><span class="small text-muted">@awaiting.Count completed booking@(awaiting.Count == 1 ? "" : "s")</span></div>
+        <ul class="activity px-4 py-2">
+            @foreach (var b in awaiting)
+            {
+                <li class="align-items-center">
+                    <avatar name="@b.ProviderName" size="sm" />
+                    <div class="flex-grow-1"><strong>@b.ServiceTitle</strong> with @b.ProviderName<div class="cell-sub">Completed @Tz.Format(b.StartUtc, "d MMM yyyy")</div></div>
+                    <a class="btn btn-primary btn-sm" asp-controller="Booking" asp-action="Review" asp-route-id="@b.Id">Leave a review</a>
+                </li>
+            }
+        </ul>
+    </div>
+}
+<div class="surface">
+    <div class="surface-head"><h2>Reviews you've written</h2></div>
+    @if (Model.Count == 0)
+    {
+        <div class="empty"><i class="bi bi-chat-square-text" aria-hidden="true"></i><h3>No reviews yet</h3><p>After a job is completed you can rate the professional. Reviews help others choose.</p></div>
+    }
+    else
+    {
+        <div class="px-4">
+            @foreach (var r in Model)
+            {
+                <article class="review">
+                    <div class="d-flex justify-content-between flex-wrap gap-2">
+                        <div><a class="fw-650 text-body" href="/providers/@r.ProviderId">@r.ProviderName</a><div class="small text-muted">@r.ServiceTitle, <a asp-controller="Booking" asp-action="Details" asp-route-id="@r.BookingId">@Booking.FormatReference(r.BookingId)</a></div></div>
+                        <div class="text-end"><stars value="@r.Rating" /><div class="small text-muted">@Tz.Format(r.CreatedAtUtc, "d MMM yyyy")</div></div>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(r.Comment)) { <p class="mt-2 mb-0">@r.Comment</p> }
+                </article>
+            }
+        </div>
+    }
+</div>

@@ -1,0 +1,4 @@
+@model PagedResult<ProviderAdminListItemVm>
+<p class="text-muted">Providers who submitted their documents, oldest first. Approve them to make their profile and time slots bookable.</p>
+<div class="surface"><partial name="_ProviderTable" model="Model.Items" /></div>
+<div class="d-flex justify-content-center mt-3"><pager page="@Model.Page" total-pages="@Model.TotalPages" /></div>

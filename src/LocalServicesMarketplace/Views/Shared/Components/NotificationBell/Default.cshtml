@@ -1,0 +1,35 @@
+@model IReadOnlyList<Notification>
+@{ var unread = (int)(ViewData["Unread"] ?? 0); }
+<div class="dropdown">
+    <button class="icon-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notifications, @unread unread">
+        <i class="bi bi-bell" aria-hidden="true"></i>
+        @if (unread > 0) { <span class="dot">@(unread > 9 ? "9+" : unread.ToString())</span> }
+    </button>
+    <div class="dropdown-menu dropdown-menu-end notif-menu">
+        <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
+            <strong class="small">Notifications</strong>
+            @if (unread > 0)
+            {
+                <form asp-controller="Notifications" asp-action="MarkAllRead" method="post"><button class="btn btn-link btn-sm p-0">Mark all read</button></form>
+            }
+        </div>
+        @if (Model.Count == 0)
+        {
+            <div class="p-4 text-center text-muted small">You're all caught up.</div>
+        }
+        @foreach (var n in Model)
+        {
+            <form asp-controller="Notifications" asp-action="Open" asp-route-id="@n.Id" method="post" class="m-0">
+                <button type="submit" class="notif-item @(n.IsRead ? "" : "unread")">
+                    <i class="bi @n.Type.Icon()" aria-hidden="true"></i>
+                    <span class="min-w-0">
+                        <span class="t d-block">@n.Title</span>
+                        <span class="m d-block">@n.Message.Truncate(110)</span>
+                        <span class="w d-block">@Tz.Relative(n.CreatedAtUtc)</span>
+                    </span>
+                </button>
+            </form>
+        }
+        <a asp-controller="Notifications" asp-action="Index" class="d-block text-center py-2 small fw-650 text-decoration-none">See all notifications</a>
+    </div>
+</div>

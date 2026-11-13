@@ -1,0 +1,52 @@
+@model ProviderCardVm
+@* The whole card is one link (stretched from the name). The foot is a ticket stub with the
+   next free time and the starting price - the same "next free slot" ticket as the home page. *@
+<article class="pro-card">
+    @if (Model.IsSampleData) { <span class="demo-badge pro-card-demo" title="Seeded demo data">Demo</span> }
+    <div class="head">
+        <avatar name="@Model.Name" src="@Model.ImagePath" size="lg" />
+        <div class="min-w-0">
+            <h3 class="name"><a class="stretched-link" href="/providers/@Model.Id" aria-label="View profile of @Model.Name">@Model.Name</a></h3>
+            <div class="meta">
+                <span class="verified"><i class="bi bi-patch-check-fill" aria-hidden="true"></i>Verified</span>
+                @if (Model.Reviews > 0)
+                {
+                    <span class="rating"><i class="bi bi-star-fill" aria-hidden="true"></i>@Model.Rating.ToString("0.0")<span class="count">(@Model.Reviews)</span></span>
+                }
+                else
+                {
+                    <span class="new">New on Kaarigar</span>
+                }
+            </div>
+        </div>
+    </div>
+    <p class="headline">@(Model.Headline ?? Model.CategoryName)</p>
+    <ul class="facts">
+        <li><i class="bi bi-tools" aria-hidden="true"></i>@Model.CategoryName</li>
+        <li><i class="bi bi-geo-alt" aria-hidden="true"></i>@Model.City</li>
+        <li><i class="bi bi-award" aria-hidden="true"></i>@Model.ExperienceYears yrs</li>
+    </ul>
+    <div class="stub">
+        @if (Model.NextSlotUtc.HasValue && Model.IsAcceptingBookings)
+        {
+            <div class="when">
+                <span class="lbl">Next free</span>
+                <strong>@Tz.Format(Model.NextSlotUtc.Value, "ddd, h:mm tt")</strong>
+            </div>
+        }
+        else
+        {
+            <div class="when off">
+                <span class="lbl">Next free</span>
+                <strong>Fully booked</strong>
+            </div>
+        }
+        @if (Model.StartingPrice.HasValue)
+        {
+            <div class="fare">
+                <span class="lbl">From</span>
+                <strong>@Model.StartingPrice.ToMoney()</strong>
+            </div>
+        }
+    </div>
+</article>

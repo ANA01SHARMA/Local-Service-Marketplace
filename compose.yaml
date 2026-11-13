@@ -1,0 +1,100 @@
+# Local Services Marketplace - full local stack
+#
+#   cp .env.example .env        # once, then adjust values if you like
+#   docker compose up --build   # http://localhost:5080
+#
+# Services
+#   db       SQL Server 2022 (data in the "mssql-data" volume, exposed on 127.0.0.1:14333 for SSMS)
+#   app      ASP.NET Core MVC + Web API (applies EF migrations + demo seed on start)
+#   mailpit  SMTP catcher for password-reset / contact e-mails (web UI on http://localhost:8025)
+#   newman   Postman collection runner (only with: docker compose --profile test run --rm newman)
+
+name: local-services-marketplace
+
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: lsm-db
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:${DB_HOST_PORT:-14333}:1433"
+    volumes:
+      - mssql-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD}\" -Q \"SELECT 1\" -b -o /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: lsm-mailpit
+    ports:
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: src/LocalServicesMarketplace/Dockerfile
+    image: local-services-marketplace:latest
+    container_name: lsm-app
+    depends_on:
+      db:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ASPNETCORE_HTTP_PORTS: "8080"
+      ConnectionStrings__DefaultConnection: "Server=db,1433;Database=${DB_NAME:-LocalServicesMarketplace};User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;MultipleActiveResultSets=False"
+      Database__ApplyMigrationsOnStartup: "true"
+      Seed__Enabled: ${SEED_ENABLED:-true}
+      Seed__SampleData: ${SEED_SAMPLE_DATA:-true}
+      Seed__AdminEmail: ${ADMIN_EMAIL:?Set ADMIN_EMAIL in .env}
+      Seed__AdminPassword: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in .env}
+      Seed__DemoUserPassword: ${DEMO_USER_PASSWORD:-Demo@12345}
+      Seed__RandomSeed: ${SEED_RANDOM_SEED:-0}
+      Jwt__Key: ${JWT_KEY:?Set JWT_KEY in .env (32+ characters)}
+      Smtp__Host: mailpit
+      Smtp__Port: "1025"
+      Storage__Root: /app/storage
+      App__PublicBaseUrl: http://localhost:${APP_HOST_PORT:-5080}
+    ports:
+      - "${APP_HOST_PORT:-5080}:8080"
+    volumes:
+      - app-storage:/app/storage
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    restart: unless-stopped
+
+  newman:
+    image: postman/newman:6-alpine
+    profiles: ["test"]
+    depends_on:
+      app:
+        condition: service_healthy
+    volumes:
+      - ./postman:/etc/newman:ro
+    command: >
+      run LocalServicesMarketplace.postman_collection.json
+      --env-var baseUrl=http://app:8080
+      --env-var customerEmail=${DEMO_CUSTOMER_EMAIL:-aarav.sharma@demo.lsm.local}
+      --env-var providerEmail=${DEMO_PROVIDER_EMAIL:-rohit.verma@demo.lsm.local}
+      --env-var demoPassword=${DEMO_USER_PASSWORD:-Demo@12345}
+      --env-var adminEmail=${ADMIN_EMAIL}
+      --env-var adminPassword=${ADMIN_PASSWORD}
+      --reporters cli
+
+volumes:
+  mssql-data:
+  app-storage:

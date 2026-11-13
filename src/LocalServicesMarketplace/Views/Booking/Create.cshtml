@@ -1,0 +1,90 @@
+@model BookingCreateViewModel
+@{
+    var p = Model.Provider!;
+    var canBook = ViewBag.CanBook as bool? ?? false;
+}
+<section class="page-hero pb-3">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/Services?category=@p.Category.Slug">@p.Category.Name</a></li>
+                <li class="breadcrumb-item"><a href="/providers/@p.Id">@p.User.FullName</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Book</li>
+            </ol>
+        </nav>
+        <h1>Book @p.User.FullName</h1>
+        <p class="text-muted mb-0">Your request goes to the professional, who confirms it. Free cancellation until 2 hours before.</p>
+    </div>
+</section>
+
+<section class="pb-5">
+    <div class="container">
+        <form asp-action="Create" method="post" novalidate>
+            <input type="hidden" asp-for="ProviderId" />
+            <div class="row g-4">
+                <div class="col-lg-8 d-grid gap-4 align-content-start">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-0"></div>
+                    @if (!canBook)
+                    {
+                        <div class="alert alert-warning mb-0">This professional isn't taking bookings right now.</div>
+                    }
+
+                    <fieldset class="surface surface-pad">
+                        <legend class="h4 mb-3">1. Choose a service</legend>
+                        <div class="d-grid gap-2">
+                            @foreach (var s in Model.Services)
+                            {
+                                var id = $"svc-{s.Id}";
+                                <div class="service-option">
+                                    <input type="radio" id="@id" name="ServiceId" value="@s.Id" @(Model.ServiceId == s.Id ? "checked" : "")
+                                           data-title="@s.Title" data-price="@s.Price.ToMoney()" data-val="true" data-val-required="Choose a service." />
+                                    <label for="@id">
+                                        <span><strong class="d-block">@s.Title</strong><span class="small text-muted">@s.Description.Truncate(110)</span></span>
+                                        <span class="text-end text-nowrap"><strong class="d-block">@s.Price.ToMoney()</strong><span class="small text-muted">@s.PriceUnit.Label()</span></span>
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                        <span asp-validation-for="ServiceId"></span>
+                    </fieldset>
+
+                    <fieldset class="surface surface-pad">
+                        <legend class="h4 mb-3">2. Pick a time</legend>
+                        <partial name="_SlotPicker" model="(Model.SlotDays, nameof(Model.TimeSlotId), Model.TimeSlotId)" />
+                        <span asp-validation-for="TimeSlotId"></span>
+                    </fieldset>
+
+                    <fieldset class="surface surface-pad">
+                        <legend class="h4 mb-3">3. Where should they come?</legend>
+                        <div class="row g-3">
+                            <div class="col-md-8"><label asp-for="Address" class="form-label"></label><input asp-for="Address" class="form-control" autocomplete="street-address" placeholder="House number, street, locality" /><span asp-validation-for="Address"></span></div>
+                            <div class="col-md-4"><label asp-for="City" class="form-label"></label><input asp-for="City" class="form-control" autocomplete="address-level2" /><span asp-validation-for="City"></span></div>
+                            <div class="col-12"><label asp-for="Notes" class="form-label"></label><textarea asp-for="Notes" class="form-control" rows="3" placeholder="Describe the problem, parking instructions, gate code..."></textarea><span asp-validation-for="Notes"></span></div>
+                        </div>
+                    </fieldset>
+                </div>
+
+                <div class="col-lg-4">
+                    <aside class="surface surface-pad" style="position:sticky;top:88px" data-booking-summary>
+                        <div class="d-flex gap-3 align-items-center mb-3">
+                            <avatar name="@p.User.FullName" src="@p.User.ProfileImagePath" />
+                            <div>
+                                <strong class="d-block">@p.User.FullName</strong>
+                                <span class="verified small"><i class="bi bi-patch-check-fill" aria-hidden="true"></i>Verified</span>
+                                @if (p.TotalReviews > 0) { <span class="rating small ms-2"><i class="bi bi-star-fill" aria-hidden="true"></i>@p.AverageRating.ToString("0.0")</span> }
+                            </div>
+                        </div>
+                        <ul class="summary-list">
+                            <li><span>Service</span><strong data-summary-service>Choose a service</strong></li>
+                            <li><span>When</span><strong data-summary-time>Choose a time</strong></li>
+                            <li class="pt-2 border-top"><span class="text-body fw-650">Price</span><strong class="fs-5" data-summary-price>–</strong></li>
+                        </ul>
+                        <button type="submit" class="btn btn-primary btn-lg w-100 mt-4" @(canBook ? "" : "disabled")>Send booking request</button>
+                        <p class="small text-muted mt-3 mb-0"><i class="bi bi-shield-check" aria-hidden="true"></i> You pay the professional after the job. Availability is checked again when you submit.</p>
+                    </aside>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

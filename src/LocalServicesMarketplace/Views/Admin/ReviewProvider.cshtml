@@ -1,0 +1,109 @@
+@model ProviderReviewViewModel
+@{ var p = Model.Provider; var perf = Model.Performance; }
+@section TopActions { <a class="btn btn-outline-ink btn-sm" href="/providers/@p.Id" target="_blank"><i class="bi bi-box-arrow-up-right me-1" aria-hidden="true"></i>Public profile</a> }
+<div class="surface surface-pad mb-4">
+    <div class="profile-head">
+        <avatar name="@p.User.FullName" src="@p.User.ProfileImagePath" size="lg" />
+        <div class="flex-grow-1 min-w-0">
+            <h2 class="h3 m-0">@p.User.FullName @if (p.IsSampleData) { <span class="demo-badge">Demo</span> }</h2>
+            <div class="text-muted">@(p.Headline ?? "No headline")</div>
+            <div class="d-flex flex-wrap gap-2 mt-2">
+                <span class="badge-status @p.VerificationStatus.BadgeClass()">@p.VerificationStatus.Label()</span>
+                <span class="chip">@p.Category.Name</span><span class="chip">@p.City</span><span class="chip">@p.ExperienceYears yrs experience</span>
+                @if (p.User.IsBlocked) { <span class="badge-status status-rejected">Account blocked</span> }
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            @if (p.VerificationStatus != VerificationStatus.Approved)
+            {
+                <form asp-action="DecideProvider" asp-route-id="@p.Id" method="post"><input type="hidden" name="approve" value="true" /><button class="btn btn-soft-success" type="submit"><i class="bi bi-patch-check me-1" aria-hidden="true"></i>Approve provider</button></form>
+            }
+            <button type="button" class="btn btn-soft-danger" data-bs-toggle="modal" data-bs-target="#rejectProviderModal">@(p.VerificationStatus == VerificationStatus.Approved ? "Revoke approval" : "Reject")</button>
+        </div>
+    </div>
+    @if (!string.IsNullOrEmpty(p.VerificationNote)) { <div class="alert alert-info mt-3 mb-0"><strong>Last note:</strong> @p.VerificationNote</div> }
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-7 d-grid gap-4 align-content-start">
+        <div class="surface">
+            <div class="surface-head"><h2>Verification documents</h2><span class="small text-muted"><i class="bi bi-lock" aria-hidden="true"></i> Private storage</span></div>
+            <div class="px-4">
+                @if (Model.Documents.Count == 0) { <div class="empty"><i class="bi bi-file-earmark-x" aria-hidden="true"></i><h3>No documents uploaded</h3><p>The provider hasn't uploaded anything yet.</p></div> }
+                @foreach (var d in Model.Documents)
+                {
+                    <div class="doc-row flex-wrap">
+                        <span class="file-icon"><i class="bi @(d.ContentType == "application/pdf" ? "bi-file-earmark-pdf" : "bi-file-earmark-image")" aria-hidden="true"></i></span>
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="fw-650">@d.DocumentType.Label()</div>
+                            <div class="small text-muted">@d.OriginalFileName, @(d.FileSizeBytes / 1024) KB, uploaded @Tz.Format(d.UploadedAtUtc, "d MMM yyyy")</div>
+                            @if (d.ReviewedAtUtc.HasValue) { <div class="small text-muted">Reviewed @Tz.Format(d.ReviewedAtUtc.Value, "d MMM")@(d.ReviewedBy is not null ? $" by {d.ReviewedBy.FullName}" : "")@(string.IsNullOrEmpty(d.ReviewNote) ? "" : $": {d.ReviewNote}")</div> }
+                        </div>
+                        <span class="badge-status @d.Status.BadgeClass()">@d.Status</span>
+                        <a class="btn btn-outline-ink btn-sm" asp-action="Document" asp-route-id="@d.Id" target="_blank">Open</a>
+                        @if (d.Status != DocumentStatus.Approved)
+                        {
+                            <form asp-action="ReviewDocument" method="post"><input type="hidden" name="id" value="@d.Id" /><input type="hidden" name="providerId" value="@p.Id" /><input type="hidden" name="approve" value="true" /><button class="btn btn-soft-success btn-sm" type="submit">Approve</button></form>
+                        }
+                        @if (d.Status != DocumentStatus.Rejected)
+                        {
+                            <button type="button" class="btn btn-soft-danger btn-sm" data-bs-toggle="modal" data-bs-target="#reasonModal" data-action="@Url.Action("ReviewDocument", new { id = d.Id, providerId = p.Id, approve = false })"
+                                    data-title="Reject this document?" data-body="The provider will be notified and can upload a replacement." data-confirm="Reject document" data-reason-required="true" data-placeholder="What's wrong with it? (sent to the provider)">Reject</button>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+        <div class="surface">
+            <div class="surface-head"><h2>Services</h2></div>
+            <div class="px-4">
+                @if (Model.Services.Count == 0) { <p class="text-muted py-3 mb-0">No services listed.</p> }
+                @foreach (var s in Model.Services)
+                {
+                    <div class="service-row"><div><h3>@s.Title @if (!s.IsActive) { <span class="badge-status status-cancelled">Hidden</span> }</h3><div class="small text-muted">@s.Category.Name, @s.DurationMinutes min</div></div><div class="price"><strong>@s.Price.ToMoney()</strong><span>@s.PriceUnit.Label()</span></div></div>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-5 d-grid gap-4 align-content-start">
+        <div class="surface surface-pad">
+            <h2 class="h5">Profile</h2>
+            <ul class="summary-list">
+                <li><span>E-mail</span><strong>@p.User.Email</strong></li>
+                <li><span>Phone</span><strong>@p.User.PhoneNumber</strong></li>
+                <li><span>Registered</span><strong>@Tz.Format(p.CreatedAtUtc, "d MMM yyyy")</strong></li>
+                <li><span>Submitted for review</span><strong>@(p.VerificationSubmittedAtUtc.HasValue ? Tz.Format(p.VerificationSubmittedAtUtc.Value) : "Not yet")</strong></li>
+                <li><span>Areas</span><strong>@(p.ServiceAreas ?? "–")</strong></li>
+                <li><span>Skills</span><strong>@(p.Skills ?? "–")</strong></li>
+            </ul>
+            @if (!string.IsNullOrEmpty(p.Bio)) { <div class="divider my-3"></div><p class="small mb-0">@p.Bio</p> }
+        </div>
+        <div class="surface surface-pad">
+            <h2 class="h5">Performance</h2>
+            <p class="small text-muted">From the <code>dbo.ProviderPerformance</code> view</p>
+            <ul class="summary-list">
+                <li><span>Total bookings</span><strong>@(perf?.TotalBookings ?? 0)</strong></li>
+                <li><span>Completed</span><strong>@(perf?.CompletedJobs ?? 0)</strong></li>
+                <li><span>Cancelled / declined</span><strong>@(perf?.CancelledJobs ?? 0) / @(perf?.RejectedJobs ?? 0)</strong></li>
+                <li><span>Completion rate</span><strong>@((perf?.CompletionRate ?? 0).ToString("0.0"))%</strong></li>
+                <li><span>Provider earnings</span><strong>@((perf?.TotalEarnings ?? 0).ToMoney())</strong></li>
+                <li><span>Average rating</span><strong>@(p.TotalReviews > 0 ? $"{p.AverageRating:0.00} ({p.TotalReviews})" : "–")</strong></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="rejectProviderModal" tabindex="-1" aria-labelledby="rejectProviderTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form asp-action="DecideProvider" asp-route-id="@p.Id" method="post" class="modal-content" style="border-radius:16px">
+            <input type="hidden" name="approve" value="false" />
+            <div class="modal-header border-0 pb-0"><h2 class="modal-title fs-5" id="rejectProviderTitle">@(p.VerificationStatus == VerificationStatus.Approved ? "Revoke approval" : "Reject application")</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+            <div class="modal-body">
+                <p class="text-muted">The provider will be hidden from customers and told why. They can fix the issue and resubmit.</p>
+                <label class="form-label" for="rejectNote">Note to the provider</label>
+                <textarea id="rejectNote" name="note" class="form-control" rows="3" required maxlength="500" placeholder="e.g. The ID photo is blurry. Please upload a clearer scan."></textarea>
+            </div>
+            <div class="modal-footer border-0 pt-0"><button type="button" class="btn btn-outline-ink" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-danger">@(p.VerificationStatus == VerificationStatus.Approved ? "Revoke" : "Reject")</button></div>
+        </form>
+    </div>
+</div>

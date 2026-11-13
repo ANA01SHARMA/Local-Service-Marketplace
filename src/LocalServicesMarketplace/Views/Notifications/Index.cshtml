@@ -1,0 +1,27 @@
+@model PagedResult<Notification>
+@{ var unreadOnly = (bool)ViewBag.UnreadOnly; }
+@section TopActions { <form asp-action="MarkAllRead" method="post"><button class="btn btn-outline-ink btn-sm" type="submit">Mark all as read</button></form> }
+<nav class="tabs-underline scroll-x" data-scroll-x aria-label="Filter notifications">
+    <a class="@(!unreadOnly ? "active" : "")" asp-action="Index">All</a>
+    <a class="@(unreadOnly ? "active" : "")" asp-action="Index" asp-route-unread="true">Unread</a>
+</nav>
+<div class="surface">
+    @if (Model.Items.Count == 0)
+    {
+        <div class="empty"><i class="bi bi-bell-slash" aria-hidden="true"></i><h3>@(unreadOnly ? "No unread notifications" : "No notifications yet")</h3><p>Booking updates, reviews and account messages appear here.</p></div>
+    }
+    @foreach (var n in Model.Items)
+    {
+        <form asp-action="Open" asp-route-id="@n.Id" method="post" class="m-0">
+            <button type="submit" class="notif-item @(n.IsRead ? "" : "unread")" style="padding:1rem 1.5rem">
+                <i class="bi @n.Type.Icon()" aria-hidden="true"></i>
+                <span class="flex-grow-1 min-w-0">
+                    <span class="t d-block">@n.Title @if (!n.IsRead) { <span class="badge-status status-confirmed ms-1">New</span> }</span>
+                    <span class="m d-block">@n.Message</span>
+                </span>
+                <span class="w text-nowrap">@Tz.Relative(n.CreatedAtUtc)</span>
+            </button>
+        </form>
+    }
+</div>
+<div class="d-flex justify-content-center mt-3"><pager page="@Model.Page" total-pages="@Model.TotalPages" /></div>
